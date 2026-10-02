@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Vektor360</title>
+  
+  <link rel="icon" type="image/png" href="/img/vektorfavicon.png">
+  <link rel="stylesheet" href="/css/style.css">
+  <script src="/js/script.js" defer></script>
+  
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@100..900&display=swap" rel="stylesheet">
+</head>
+<body>
+
+  <!-- Menu Superior -->
+  <div class="top-bar">
+    <div class="menu-items">
+      <div class="dropdown-container">
+        <span class="dropdown-btn" id="configBtn">Configuración ▾</span>
+        <div class="dropdown-menu" id="configMenu">
+          <div class="dropdown-item">Perfil de Usuario</div>
+          <div class="dropdown-item">Seguridad y Permisos</div>
+          
+          <div class="dropdown-item mode-toggle-item" id="modeToggle">
+            <span id="modeToggleText">Modo Oscuro</span>
+            <label class="switch">
+              <input type="checkbox" id="modeCheckbox">
+              <span class="slider round"></span>
+            </label>
+          </div>
+
+          <div class="dropdown-divider"></div>
+          
+          <div class="dropdown-item has-submenu">
+            <span>Temas ▸</span>
+            <div class="submenu">
+              <div class="dropdown-item theme-opt" data-theme="default" data-logo="/img/vektor360.png">Vektor360</div>
+              <div class="dropdown-item theme-opt" data-theme="oro-negro" data-logo="/img/eon.png">Expreso Oro Negro</div>
+              <div class="dropdown-item theme-opt" data-theme="cdc" data-logo="/img/cdc.png">Transporte CDC</div>
+              <div class="dropdown-item theme-opt" data-theme="cruz-del-sur" data-logo="/img/cds.png">Cruz del Sur</div>
+              <div class="dropdown-item theme-opt" data-theme="don-pedro" data-logo="/img/donpedro.png">Don Pedro</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <span>Archivo</span>
+      <span>Operaciones</span>
+      <span>Reportes</span>
+      <span>Mantenimiento</span>
+      <span>Maestros</span>
+      <span>Ayuda</span>
+    </div>
+  </div>
+
+  <!-- Barra de Herramientas -->
+  <div class="toolbar">
+    <div class="tool-buttons">
+      <button class="tool-btn">Nuevo Registro</button>
+      <button class="tool-btn">Nueva Orden</button>
+      <button class="tool-btn">Reportar Falla</button>
+      <button class="tool-btn">Rotación Neumáticos</button>
+      <button class="tool-btn">Calcular CPK</button>
+    </div>
+
+    <div class="system-title">
+      <img id="systemLogo" src="/img/vektor360.png" alt="Logo Empresa">
+    </div>
+  </div>
+
+  <!-- Contenedor Principal -->
+  <div class="main-container">
+
+    <!-- Barra Lateral de Navegación -->
+    <div class="sidebar">
+      <div class="sidebar-section">PANEL INICIAL</div>
+      <button class="nav-btn active">
+        <span>Dashboard</span>
+      </button>
+
+      <div class="sidebar-section">GESTIÓN PRINCIPAL</div>
+      <button class="nav-btn">
+        <span>Vehículos (ABM)</span>
+        <span class="nav-badge">65</span>
+      </button>
+      <button class="nav-btn">
+        <span>Choferes</span>
+        <span class="nav-badge">48</span>
+      </button>
+
+      <div class="sidebar-section">TALLER Y MANTEN.</div>
+      <button class="nav-btn">
+        <span>Órdenes Manten.</span>
+        <span class="nav-badge alert">7</span>
+      </button>
+      <button class="nav-btn">
+        <span>Incidentes / Fallas</span>
+        <span class="nav-badge warning">3</span>
+      </button>
+      <button class="nav-btn">
+        <span>Talleres Ext.</span>
+      </button>
+
+      <div class="sidebar-section">INSUMOS Y COSTOS</div>
+      <button class="nav-btn">
+        <span>Neumáticos</span>
+      </button>
+      <button class="nav-btn">
+        <span>Repuestos / Stock</span>
+        <span class="nav-badge warning">2</span>
+      </button>
+      <button class="nav-btn">
+        <span>Reportes CPK</span>
+      </button>
+    </div>
+
+    <!-- Área de Trabajo Estática -->
+    <div class="workspace" id="workspace">
+      
+      <div class="dashboard-sections-container">
+
+        <!-- SECCIÓN 1: GESTIÓN PRINCIPAL -->
+        <div class="dashboard-group">
+          <div class="group-title">GESTIÓN PRINCIPAL</div>
+          <div class="module-grid grid-2">
+            <div class="module-card large-card">
+              <div class="module-header">
+                <h4>Vehículos (ABM)</h4>
+              </div>
+              <p class="module-desc">Alta, baja y modificación de camiones, acoplados y utilitarios. Control de dominios, fichas técnicas y documentación habilitante.</p>
+              <div class="module-metrics-grid">
+                <div class="metric-box">
+                  <span class="metric-label">Total Flota</span>
+                  <span class="metric-val">65</span>
+                </div>
+                <div class="metric-box">
+                  <span class="metric-label">Operativas</span>
+                  <span class="metric-val text-success">58</span>
+                </div>
+                <div class="metric-box">
+                  <span class="metric-label">En Taller</span>
+                  <span class="metric-val text-danger">7</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="module-card large-card">
+              <div class="module-header">
+                <h4>Choferes y Personal</h4>
+              </div>
+              <p class="module-desc">Administración de legajos, asignación de unidades, licencias de conducir LINTI y control de vencimientos de psicofísicos.</p>
+              <div class="module-metrics-grid">
+                <div class="metric-box">
+                  <span class="metric-label">Activos</span>
+                  <span class="metric-val">48</span>
+                </div>
+                <div class="metric-box">
+                  <span class="metric-label">Sin Asignar</span>
+                  <span class="metric-val">3</span>
+                </div>
+                <div class="metric-box">
+                  <span class="metric-label">Vencimientos</span>
+                  <span class="metric-val text-warning">2</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- SECCIÓN 2: TALLER Y MANTENIMIENTO -->
+        <div class="dashboard-group">
+          <div class="group-title">TALLER Y MANTENIMIENTO</div>
+          <div class="module-grid grid-3">
+            <div class="module-card large-card">
+              <div class="module-header">
+                <h4>Órdenes de Mantenimiento</h4>
+              </div>
+              <p class="module-desc">Emisión y seguimiento de Órdenes de Trabajo (OT) para servicios preventivos y correctivos.</p>
+              <div class="module-detail">
+                <span>Abiertas: <strong>7 OT</strong></span>
+                <span class="badge badge-warning">En Proceso</span>
+              </div>
+            </div>
+
+            <div class="module-card large-card">
+              <div class="module-header">
+                <h4>Incidentes / Fallas</h4>
+              </div>
+              <p class="module-desc">Registro de novedades mecánicas reportadas por choferes y auxilio mecánico en ruta.</p>
+              <div class="module-detail">
+                <span>Pendientes: <strong>3 Casos</strong></span>
+                <span class="badge badge-danger">Atención</span>
+              </div>
+            </div>
+
+            <div class="module-card large-card">
+              <div class="module-header">
+                <h4>Talleres Externos</h4>
+              </div>
+              <p class="module-desc">Homologación de proveedores, presupuestos externos y control de garantía de trabajos.</p>
+              <div class="module-detail">
+                <span>Proveedores: <strong>12 Activos</strong></span>
+                <span class="badge badge-success">OK</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- SECCIÓN 3: INSUMOS Y COSTOS -->
+        <div class="dashboard-group">
+          <div class="group-title">INSUMOS Y COSTOS OPERATIVOS</div>
+          <div class="module-grid grid-3">
+            <div class="module-card large-card">
+              <div class="module-header">
+                <h4>Control de Neumáticos</h4>
+              </div>
+              <p class="module-desc">Trazabilidad de cubiertas por marca, remanente de profundidades, rotaciones y recapa.</p>
+              <div class="module-detail">
+                <span>Inspecciones: <strong>Al día</strong></span>
+                <span class="badge badge-success">Óptimo</span>
+              </div>
+            </div>
+
+            <div class="module-card large-card">
+              <div class="module-header">
+                <h4>Repuestos / Stock</h4>
+              </div>
+              <p class="module-desc">Control de pañol, insumos críticos, lubricantes, filtros y alertas de punto de pedido.</p>
+              <div class="module-detail">
+                <span>Alertas Stock: <strong>2 Insumos</strong></span>
+                <span class="badge badge-warning">Reponer</span>
+              </div>
+            </div>
+
+            <div class="module-card large-card">
+              <div class="module-header">
+                <h4>Reportes CPK</h4>
+              </div>
+              <p class="module-desc">Cálculo de Costo Por Kilómetro recorrido por unidad, marca de motor y tipo de tramo.</p>
+              <div class="module-detail">
+                <span>Promedio: <strong>$142,50 / km</strong></span>
+                <span class="badge badge-success">Estable</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+
+  </div>
+
+  <!-- Barra de Estado Inferior -->
+  <div class="status-bar">
+    <div class="status-left">
+      <span>Usuario: <strong>Administrador (Vektor360)</strong></span>
+      <span>Servidor: <strong>Nube - Conectado</strong></span>
+      <span>Unidades Registradas: <strong>65</strong></span>
+    </div>
+    <div id="liveClock">Fecha: <strong>--/--/---- - --:-- --</strong></div>
+  </div>
+
+</body>
+</html>

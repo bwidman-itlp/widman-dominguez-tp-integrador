@@ -1,0 +1,608 @@
+/* ==========================================================================
+   VARIABLES GLOBALES (MODO OSCURO POR DEFECTO + TEMA DEFAULT VEKTOR360)
+   ========================================================================== */
+:root {
+  --bg-body: #0b0b0b;
+  --bg-workspace: #080808;
+  --bg-dots: #1e1e1e;
+  --bg-surface: #1a1a1a;
+  --bg-sidebar: #121212;
+  --bg-card: linear-gradient(180deg, #242424 0%, #141414 100%);
+  --bg-toolbar: #181818;
+  --text-main: #e0e0e0;
+  --text-muted: #aaa;
+  --border-color: #333;
+  --table-header-bg: #252525;
+  --table-row-even: #121212;
+  --table-row-odd: #161616;
+  --table-row-hover: #222;
+  --btn-nav-bg: linear-gradient(180deg, #2a2a2a 0%, #181818 100%);
+  --btn-nav-border: #3d3d3d;
+  --btn-tool-bg: linear-gradient(180deg, #3a3a3a 0%, #222 100%);
+  --btn-tool-border-base: #444;
+
+  /* TEMA DEFAULT: Vektor360 */
+  --bg-topbar: linear-gradient(180deg, #222 0%, #111 100%);
+  --border-topbar: #d32f2f;
+  --text-title: #ff5252;
+  --text-hover: #ff5252;
+  --btn-tool-hover: linear-gradient(180deg, #d32f2f 0%, #8b0000 100%);
+  --btn-tool-border: #ff5252;
+  --btn-active-bg: linear-gradient(180deg, #e50914 0%, #8b0000 100%);
+  --btn-active-border: #ff5252;
+  --btn-active-shadow: rgba(229, 9, 20, 0.5);
+  --header-modal: linear-gradient(90deg, #8b0000 0%, #1a1a1a 100%);
+  --border-modal: #d32f2f;
+  --kpi-border: #d32f2f;
+  --tab-active-bg: #d32f2f;
+  --tab-active-border: #ff5252;
+}
+
+/* ==========================================================================
+   OVERRIDE MODO CLARO
+   ========================================================================== */
+body[data-mode="light"] {
+  --bg-body: #f0f4f8;
+  --bg-workspace: #f8fafc;
+  --bg-dots: #cbd5e1;
+  --bg-surface: #ffffff;
+  --bg-sidebar: #e2e8f0;
+  --bg-card: linear-gradient(180deg, #ffffff 0%, #f1f5f9 100%);
+  --bg-toolbar: #e2e8f0;
+  --text-main: #1e293b;
+  --text-muted: #64748b;
+  --border-color: #cbd5e1;
+  --table-header-bg: #e2e8f0;
+  --table-row-even: #f8fafc;
+  --table-row-odd: #ffffff;
+  --table-row-hover: #e2e8f0;
+  --btn-nav-bg: linear-gradient(180deg, #ffffff 0%, #edf2f7 100%);
+  --btn-nav-border: #cbd5e1;
+  --btn-tool-bg: linear-gradient(180deg, #ffffff 0%, #e2e8f0 100%);
+  --btn-tool-border-base: #cbd5e1;
+}
+
+/* ==========================================================================
+   TEMAS CORPORATIVOS POR EMPRESA
+   ========================================================================== */
+/* Expreso Oro Negro */
+body[data-theme="oro-negro"] {
+  --bg-topbar: linear-gradient(180deg, #2B4C7E 0%, #1A3052 100%);
+  --border-topbar: #4A92D9;
+  --text-title: #4A92D9;
+  --text-hover: #4A92D9;
+  --btn-tool-hover: linear-gradient(180deg, #C83232 0%, #962222 100%);
+  --btn-tool-border: #C83232;
+  --btn-active-bg: linear-gradient(180deg, #4A92D9 0%, #2B4C7E 100%);
+  --btn-active-border: #4A92D9;
+  --btn-active-shadow: rgba(74, 146, 217, 0.5);
+  --header-modal: linear-gradient(90deg, #2B4C7E 0%, #1A3052 100%);
+  --border-modal: #4A92D9;
+  --kpi-border: #C83232;
+  --tab-active-bg: #C83232;
+  --tab-active-border: #4A92D9;
+}
+
+/* Transporte CDC */
+body[data-theme="cdc"] {
+  --bg-topbar: linear-gradient(180deg, #1A1A1A 0%, #0D0D0D 100%);
+  --border-topbar: #0B7A38;
+  --text-title: #0B7A38;
+  --text-hover: #0B7A38;
+  --btn-tool-hover: linear-gradient(180deg, #A81015 0%, #700B0E 100%);
+  --btn-tool-border: #A81015;
+  --btn-active-bg: linear-gradient(180deg, #0B7A38 0%, #05421E 100%);
+  --btn-active-border: #0B7A38;
+  --btn-active-shadow: rgba(11, 122, 56, 0.5);
+  --header-modal: linear-gradient(90deg, #0B7A38 0%, #1A1A1A 100%);
+  --border-modal: #A81015;
+  --kpi-border: #0B7A38;
+  --tab-active-bg: #A81015;
+  --tab-active-border: #0B7A38;
+}
+
+/* Cruz del Sur */
+body[data-theme="cruz-del-sur"] {
+  --bg-topbar: linear-gradient(180deg, #283573 0%, #18224B 100%);
+  --border-topbar: #0091D5;
+  --text-title: #0091D5;
+  --text-hover: #0091D5;
+  --btn-tool-hover: linear-gradient(180deg, #0091D5 0%, #006494 100%);
+  --btn-tool-border: #0091D5;
+  --btn-active-bg: linear-gradient(180deg, #0091D5 0%, #283573 100%);
+  --btn-active-border: #0091D5;
+  --btn-active-shadow: rgba(0, 145, 213, 0.5);
+  --header-modal: linear-gradient(90deg, #283573 0%, #18224B 100%);
+  --border-modal: #0091D5;
+  --kpi-border: #0091D5;
+  --tab-active-bg: #0091D5;
+  --tab-active-border: #0091D5;
+}
+
+/* Don Pedro */
+body[data-theme="don-pedro"] {
+  --bg-topbar: linear-gradient(180deg, #0D3182 0%, #071C4C 100%);
+  --border-topbar: #E85D04;
+  --text-title: #E85D04;
+  --text-hover: #48C728;
+  --btn-tool-hover: linear-gradient(180deg, #E85D04 0%, #A33F00 100%);
+  --btn-tool-border: #E85D04;
+  --btn-active-bg: linear-gradient(180deg, #E85D04 0%, #ad4200 100%);
+  --btn-active-border: #48C728;
+  --btn-active-shadow: rgba(232, 93, 4, 0.5);
+  --header-modal: linear-gradient(90deg, #0D3182 0%, #071C4C 100%);
+  --border-modal: #48C728;
+  --kpi-border: #E85D04;
+  --tab-active-bg: #E85D04;
+  --tab-active-border: #48C728;
+}
+
+/* ==========================================================================
+   RESET Y ANIMACIÓN GLOBAL
+   ========================================================================== */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  font-family: 'Montserrat', sans-serif;
+}
+
+body, .top-bar, .toolbar, .sidebar, .workspace, .status-bar, .nav-btn, .tool-btn {
+  transition: background-color 0.35s ease, color 0.35s ease, border-color 0.35s ease, box-shadow 0.35s ease;
+}
+
+body {
+  background-color: var(--bg-body);
+  color: var(--text-main);
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
+}
+
+/* ==========================================================================
+   BARRA SUPERIOR (TOP-BAR)
+   ========================================================================== */
+.top-bar {
+  background: var(--bg-topbar);
+  border-bottom: 2px solid var(--border-topbar);
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 10px;
+  font-size: 12px;
+}
+
+.menu-items {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.menu-items > span {
+  cursor: pointer;
+  color: #f3f3f3;
+}
+
+.menu-items > span:hover {
+  color: var(--text-hover);
+}
+
+/* ==========================================================================
+   DESPLEGABLES Y SUBMENÚS
+   ========================================================================== */
+.dropdown-container {
+  position: relative;
+  display: inline-block;
+}
+
+.dropdown-btn {
+  color: #f8f8f8;
+  cursor: pointer;
+}
+
+.dropdown-menu {
+  display: none;
+  position: absolute;
+  top: 24px;
+  left: 0;
+  background-color: var(--bg-surface);
+  min-width: 190px;
+  box-shadow: 0px 8px 16px rgba(0,0,0,0.4);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  z-index: 1000;
+  padding: 5px 0;
+}
+
+.dropdown-menu.show {
+  display: block;
+}
+
+.dropdown-item {
+  padding: 8px 12px;
+  font-size: 11px;
+  color: var(--text-main);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.dropdown-item:hover {
+  background-color: var(--table-row-hover);
+  color: var(--text-hover);
+}
+
+.dropdown-divider {
+  height: 1px;
+  background-color: var(--border-color);
+  margin: 4px 0;
+}
+
+.has-submenu {
+  position: relative;
+}
+
+.submenu {
+  display: none;
+  position: absolute;
+  top: 0;
+  left: 100%;
+  background-color: var(--bg-surface);
+  min-width: 180px;
+  box-shadow: 0px 8px 16px rgba(0,0,0,0.4);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  z-index: 1001;
+  padding: 5px 0;
+}
+
+.has-submenu:hover .submenu {
+  display: block;
+}
+
+/* ==========================================================================
+   INTERRUPTOR DESLIZANTE (SLIDER SWITCH)
+   ========================================================================== */
+.mode-toggle-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  cursor: pointer;
+}
+
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 36px;
+  height: 20px;
+}
+
+.switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #444;
+  transition: background-color 0.3s ease;
+  border-radius: 20px;
+}
+
+.slider:before {
+  position: absolute;
+  content: "";
+  height: 14px;
+  width: 14px;
+  left: 3px;
+  bottom: 3px;
+  background-color: #ffffff;
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border-radius: 50%;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.4);
+}
+
+input:checked + .slider {
+  background-color: var(--text-hover, #0091D5);
+}
+
+input:checked + .slider:before {
+  transform: translateX(16px);
+}
+
+/* ==========================================================================
+   BARRA DE HERRAMIENTAS Y LOGO A LA DERECHA
+   ========================================================================== */
+.toolbar {
+  background: var(--bg-toolbar);
+  border-bottom: 1px solid var(--border-color);
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 12px;
+}
+
+.tool-buttons {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.tool-btn {
+  background: var(--btn-tool-bg);
+  border: 1px solid var(--btn-tool-border-base);
+  border-radius: 4px;
+  color: var(--text-main);
+  padding: 4px 10px;
+  font-size: 11px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.tool-btn:hover {
+  background: var(--btn-tool-hover);
+  border-color: var(--btn-tool-border);
+  color: #fff;
+}
+
+.system-title {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  height: 100%;
+  margin-left: auto;
+}
+
+.system-title img {
+  max-height: 40px;
+  width: auto;
+  object-fit: contain;
+}
+
+/* ==========================================================================
+   ESTRUCTURA PRINCIPAL Y SIDEBAR
+   ========================================================================== */
+.main-container {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
+.sidebar {
+  width: 160px;
+  background: var(--bg-sidebar);
+  border-right: 1px solid var(--border-color);
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.sidebar-section {
+  font-size: 10px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  font-weight: bold;
+  margin-top: 6px;
+  margin-bottom: 2px;
+  padding-left: 4px;
+}
+
+.nav-btn {
+  background: var(--btn-nav-bg);
+  border: 1px solid var(--btn-nav-border);
+  border-radius: 6px;
+  color: var(--text-main);
+  padding: 8px;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1), 0 2px 4px rgba(0, 0, 0, 0.1);
+  text-align: left;
+}
+
+.nav-btn:hover {
+  border-color: var(--text-hover);
+}
+
+.nav-btn.active {
+  background: var(--btn-active-bg);
+  border-color: var(--btn-active-border);
+  color: #fff;
+  box-shadow: 0 0 8px var(--btn-active-shadow);
+}
+
+.nav-badge {
+  background: var(--bg-surface);
+  color: var(--text-main);
+  border: 1px solid var(--border-color);
+  font-size: 9px;
+  font-weight: bold;
+  padding: 1px 6px;
+  border-radius: 10px;
+}
+
+.nav-badge.warning {
+  background: #e65100;
+  color: #ffe0b2;
+  border-color: #ff9800;
+}
+
+.nav-badge.alert {
+  background: #b71c1c;
+  color: #ffcdd2;
+  border-color: #f44336;
+}
+
+/* ==========================================================================
+   ÁREA DE TRABAJO
+   ========================================================================== */
+.workspace {
+  flex: 1;
+  background: var(--bg-workspace);
+  padding: 15px;
+  position: relative;
+  overflow: auto;
+  background-image: radial-gradient(var(--bg-dots) 1px, transparent 0);
+  background-size: 16px 16px;
+}
+
+/* ==========================================================================
+   ESTILOS DASHBOARD AGRUPADO
+   ========================================================================== */
+.dashboard-header-bar {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  border-left: 4px solid var(--border-modal);
+  padding: 10px 14px;
+  margin-bottom: 20px;
+  border-radius: 4px;
+}
+
+.dashboard-title-text {
+  font-size: 12px;
+  font-weight: bold;
+  color: var(--text-main);
+  letter-spacing: 0.5px;
+}
+
+.dashboard-group {
+  margin-bottom: 22px;
+}
+
+.group-title {
+  font-size: 11px;
+  font-weight: bold;
+  color: var(--text-title);
+  text-transform: uppercase;
+  margin-bottom: 10px;
+  padding-bottom: 4px;
+  border-bottom: 1px solid var(--border-color);
+  letter-spacing: 0.5px;
+}
+
+.module-grid {
+  display: grid;
+  gap: 12px;
+}
+
+.module-grid.grid-2 {
+  grid-template-columns: repeat(2, 1fr);
+}
+
+.module-grid.grid-3 {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.module-card.large-card {
+  padding: 16px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  border-left: 4px solid var(--btn-active-border);
+  border-radius: 4px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.module-header h4 {
+  font-size: 13px;
+  color: var(--text-main);
+  font-weight: bold;
+}
+
+.module-card.large-card .module-desc {
+  font-size: 11px;
+  color: var(--text-muted);
+  line-height: 1.4;
+  margin: 10px 0 14px 0;
+}
+
+.module-metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  background: var(--bg-sidebar);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  padding: 8px;
+}
+
+.metric-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.metric-label {
+  font-size: 9px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+}
+
+.metric-val {
+  font-size: 13px;
+  font-weight: bold;
+  color: var(--text-main);
+  margin-top: 2px;
+}
+
+.metric-val.text-success { color: #4caf50; }
+.metric-val.text-warning { color: #ff9800; }
+.metric-val.text-danger { color: #f44336; }
+
+.module-detail {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 10px;
+  color: var(--text-main);
+  border-top: 1px dashed var(--border-color);
+  padding-top: 8px;
+}
+
+.badge {
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-size: 9px;
+  font-weight: bold;
+}
+
+.badge-success { background: #1b5e20; color: #a5d6a7; }
+.badge-warning { background: #e65100; color: #ffe0b2; }
+.badge-danger { background: #b71c1c; color: #ffcdd2; }
+
+/* ==========================================================================
+   BARRA DE ESTADO (STATUS BAR)
+   ========================================================================== */
+.status-bar {
+  background: var(--bg-surface);
+  border-top: 1px solid var(--border-color);
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 10px;
+  font-size: 10px;
+  color: var(--text-muted);
+}
+
+.status-left span {
+  margin-right: 15px;
+}
