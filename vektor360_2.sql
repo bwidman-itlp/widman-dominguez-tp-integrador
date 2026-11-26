@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Servidor: 127.0.0.1
--- Tiempo de generación: 18-11-2026 a las 15:38:36
+-- Tiempo de generación: 26-11-2026 a las 04:14:42
 -- Versión del servidor: 10.11.16-MariaDB
 -- Versión de PHP: 8.5.12
 
@@ -40,14 +40,16 @@ CREATE TABLE `chofer` (
 INSERT INTO `chofer` (`nro_legajo`, `licencia`, `id_usuarios`) VALUES
 (101, 'B1-998822', NULL),
 (102, 'E2-443322', NULL),
-(103, 'E2-112233', NULL),
-(104, 'D1-778899', NULL),
+(103, 'E2-112233', 5),
+(104, 'D1-778899', 6),
 (105, 'E1-554433', NULL),
 (106, 'E2-990011', NULL),
 (107, 'C1-332211', NULL),
 (108, 'E2-665544', NULL),
 (109, 'D2-110022', NULL),
-(110, 'E1-887766', NULL);
+(110, 'E1-887766', NULL),
+(111, 'E2-774411', 5),
+(112, 'E1-662299', 6);
 
 -- --------------------------------------------------------
 
@@ -72,9 +74,7 @@ CREATE TABLE `incidentes` (
 INSERT INTO `incidentes` (`id_incidentes`, `fecha`, `detalles`, `lugar`, `Estado`, `patente_id`, `nro_legajo_id`) VALUES
 (1, '2026-10-24 08:00:00', 'Desgaste prematuro de neumáticos en el eje delantero', 'Autopista Bs As - Rosario Km 120', 'Pendiente', 'AG789ZZ', 101),
 (2, '2026-10-25 16:45:00', 'Falla eléctrica en el tablero de instrumentos', 'Tres Arroyos', 'En Reparación', 'AF111AA', 102),
-(3, '2026-10-26 11:20:00', 'Pérdida menor de líquido refrigerante', 'Bahía Blanca - Zona Industrial', 'Solucionado', 'AC222BB', 103),
-(4, '2026-10-27 19:10:00', 'Rotura de manguera de aire de suspensión', 'Ruta Nacional 3 Km 710', 'Pendiente', 'AE333CC', 104),
-(5, '2026-10-28 09:30:00', 'Baja presión de aceite en motor', 'Ruta 22 Km 1050', 'En Reparación', 'AG666FF', 105);
+(4, '2026-10-27 19:10:00', 'Rotura de manguera de aire de suspensión', 'Ruta Nacional 3 Km 710', 'Pendiente', 'AE333CC', 104);
 
 -- --------------------------------------------------------
 
@@ -186,7 +186,6 @@ CREATE TABLE `trabajan` (
 INSERT INTO `trabajan` (`id_trabajan`, `id_incidentes`, `cod_repuesto`, `id_usuarios`, `fecha`, `cantidad`) VALUES
 (1, 1, 'REP-003', 2, '2026-10-24 10:00:00', 2),
 (2, 2, 'REP-002', 2, '2026-10-25 18:00:00', 1),
-(3, 3, 'REP-007', 2, '2026-10-26 12:30:00', 4),
 (4, 4, 'REP-001', 2, '2026-10-27 20:00:00', 1);
 
 -- --------------------------------------------------------
@@ -211,7 +210,11 @@ CREATE TABLE `usuario` (
 INSERT INTO `usuario` (`id_usuarios`, `DNI`, `nombre`, `cargo`, `email`, `contraseña`) VALUES
 (1, '35489123', 'Administrador Vektor', 'Administrador', 'admin@vektor360.com', 'P4$$W0RD'),
 (2, '28994112', 'Esteban Dominguez', 'Encargado de Taller', 'edtaller@vektor360.com', 'P4$$W0RD'),
-(3, '32115488', 'Mariana Gomez', 'Jefa de Logística', 'mgomez@vektor360.com', 'P4$$W0RD');
+(3, '32115488', 'Mariana Gomez', 'Jefa de Logística', 'mgomez@vektor360.com', 'P4$$W0RD'),
+(5, '30456789', 'Lucas Fernandez', 'Chofer', 'lfernandez@vektor360.com', 'P4$$W0RD'),
+(6, '33987654', 'Camila Sosa', 'Chofer', 'csosa@vektor360.com', 'P4$$W0RD'),
+(7, '27654321', 'Martin Pereyra', 'Encargado de Taller', 'mpereyra@vektor360.com', 'P4$$W0RD'),
+(8, '36789123', 'Sofia Castro', 'Jefa de Logística', 'scastro@vektor360.com', 'P4$$W0RD');
 
 -- --------------------------------------------------------
 
@@ -233,10 +236,7 @@ CREATE TABLE `vehiculos` (
 --
 
 INSERT INTO `vehiculos` (`patente`, `modelo`, `marca`, `año`, `km_actuales`, `Estado`) VALUES
-('AA555EE', 'Antos 1932', 'Mercedes-Benz', 2019, 310000, 'Disponible'),
-('AB777GG', 'FH 540', 'Volvo', 2023, 85000, 'En Ruta'),
-('AC222BB', 'Actros 2645', 'Mercedes-Benz', 2020, 280000, 'Disponible'),
-('AC999II', 'Actros 3342', 'Mercedes-Benz', 2020, 255000, 'En Taller'),
+('AC999II', 'Actros 3342', 'Mercedes-Benz', 2020, 255000, 'Fuera de Servicio'),
 ('AD444DD', 'TGX 18.440', 'MAN', 2021, 210000, 'En Ruta'),
 ('AE333CC', 'Cursor 13', 'Iveco', 2023, 95000, 'Disponible'),
 ('AF111AA', 'FH 460', 'Volvo', 2022, 160000, 'En Taller'),
@@ -339,7 +339,7 @@ ALTER TABLE `trabajan`
 -- AUTO_INCREMENT de la tabla `usuario`
 --
 ALTER TABLE `usuario`
-  MODIFY `id_usuarios` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+  MODIFY `id_usuarios` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
 
 --
 -- Restricciones para tablas volcadas

@@ -1,95 +1,92 @@
 <?php
-// api/vehiculos.php
-require_once __DIR__ . '/config/db.php';
+// api/vehiculos.php - API CRUD de vehiculos (RF-02)
 
-$method = $_SERVER['REQUEST_METHOD'];
+require_once __DIR__ . '/config/db.php'; // Trae $pdo y cabeceras JSON
+
+$metodo = $_SERVER['REQUEST_METHOD']; // Lee GET, POST, PUT o DELETE
+$entrada = json_decode(file_get_contents("php://input"), true) ?? []; // Lee cuerpo JSON si existe
 
 try {
-    switch ($method) {
+    switch ($metodo) {
         case 'GET':
-            // Listar todos los vehículos o filtrar por patente
-            if (isset($_GET['patente'])) {
-                $stmt = $pdo->prepare("SELECT * FROM vehiculos WHERE patente = ?");
-                $stmt->execute([strtoupper(trim($_GET['patente']))]);
-                $data = $stmt->fetch();
-                echo json_encode(["status" => "ok", "data" => $data]);
-            } else {
-                $stmt = $pdo->query("SELECT * FROM vehiculos ORDER BY patente ASC");
-                $data = $stmt->fetchAll();
-                echo json_encode(["status" => "ok", "data" => $data]);
+            if (!empty($_GET['patente'])) { // Busca un solo vehiculo por patente
+                $sentencia = $pdo->prepare("SELECT * FROM vehiculos WHERE patente = ?");
+                $sentencia->execute([strtoupper(trim($_GET['patente']))]);
+                echo json_encode(["status" => "ok", "data" => $sentencia->fetch()]);
+                break;
             }
+
+            $sentencia = $pdo->query("SELECT * FROM vehiculos ORDER BY patente ASC"); // Lista toda la flota
+            echo json_encode(["status" => "ok", "data" => $sentencia->fetchAll()]);
             break;
 
-        case 'POST':
-            // Alta de Vehículo (RF-02)
-            $input = json_decode(file_get_contents("php://input"), true);
-            $patente = strtoupper(trim($input['patente'] ?? ''));
-            $modelo  = trim($input['modelo'] ?? '');
-            $marca   = trim($input['marca'] ?? '');
-            $anio    = intval($input['año'] ?? 0);
-            $km      = intval($input['km_actuales'] ?? 0);
-            $estado  = trim($input['Estado'] ?? 'Disponible');
+        case 'POST': // Alta de vehiculo
+            $patente = strtoupper(trim($entrada['patente'] ?? ''));
+            $modelo  = trim($entrada['modelo'] ?? '');
+            $marca   = trim($entrada['marca'] ?? '');
+            $anio    = intval($entrada['año'] ?? 0);
+            $km      = intval($entrada['km_actuales'] ?? 0);
+            $estado  = trim($entrada['Estado'] ?? 'Disponible');
 
-            if (!$patente || !$modelo || !$marca || $anio < 1950) {
+            if (!$patente || !$modelo || !$marca || $anio < 1950) { // Valida campos minimos
                 http_response_code(400);
                 echo json_encode(["status" => "error", "message" => "Campos obligatorios incompletos."]);
                 exit();
             }
 
-            // Excepción RF-02: Patente duplicada
-            $check = $pdo->prepare("SELECT patente FROM vehiculos WHERE patente = ?");
-            $check->execute([$patente]);
-            if ($check->fetch()) {
-                http_response_code(409);
-                echo json_encode(["status" => "error", "message" => "Error RF-02: La patente $patente ya se encuentra registrada."]);
+            $existe = $pdo->prepare("SELECT patente FROM vehiculos WHERE patente = ?"); // Evita patentes repetidas
+            $existe->execute([$patente]);
+            if ($existe->fetch()) {
+                http_response_code(409); // Conflicto por duplicado
+                echo json_encode(["status" => "error", "message" => "La patente $patente ya existe."]);
                 exit();
             }
 
             $sql = "INSERT INTO vehiculos (patente, modelo, marca, `año`, km_actuales, Estado) VALUES (?, ?, ?, ?, ?, ?)";
-            $stmt = $pdo->prepare($sql);
-            $stmt->execute([$patente, $modelo, $marca, $anio, $km, $estado]);
+            $pdo->prepare($sql)->execute([$patente, $modelo, $marca, $anio, $km, $estado]); // Inserta seguro con ?
 
-            echo json_encode(["status" => "ok", "message" => "Vehículo $patente dado de alta correctamente."]);
+            echo json_encode(["status" => "ok", "message" => "Vehiculo $patente registrado."]);
             break;
 
-        case 'PUT':
-            // Modificación de Vehículo / Estado del vehículo (DFD Proceso 2 y 3)
-            $input = json_decode(file_get_contents("php://input"), true);
-            $patente = strtoupper(trim($input['patente'] ?? ''));
-            $modelo  = trim($input['modelo'] ?? '');
-            $marca   = trim($input['marca'] ?? '');
-            $anio    = intval($input['año'] ?? 0);
-            $km      = intval($input['km_actuales'] ?? 0);
-            $estado  = trim($input['Estado'] ?? 'Disponible');
+        case 'PUT': // Modifica datos o estado de un vehiculo existente
+            $patente = strtoupper(trim($entrada['patente'] ?? ''));
+            $modelo  = trim($entrada['modelo'] ?? '');
+            $marca   = trim($entrada['marca'] ?? '');
+            $anio    = intval($entrada['año'] ?? 0);
+            $km      = intval($entrada['km_actuales'] ?? 0);
+            $estado  = trim($entrada['Estado'] ?? 'Disponible');
+
+            if (!$patente) {
+                http_response_code(400);
+                echo json_encode(["status" => "error", "message" => "Patente requerida para actualizar."]);
+                exit();
+            }
 
             $sql = "UPDATE vehiculos SET modelo = ?, marca = ?, `año` = ?, km_actuales = ?, Estado = ? WHERE patente = ?";
-            $stmt = $pdo->prepare($sql);
-            $stmt->execute([$modelo, $marca, $anio, $km, $estado, $patente]);
+            $pdo->prepare($sql)->execute([$modelo, $marca, $anio, $km, $estado, $patente]);
 
-            echo json_encode(["status" => "ok", "message" => "Vehículo $patente actualizado."]);
+            echo json_encode(["status" => "ok", "message" => "Vehiculo $patente actualizado."]);
             break;
 
-        case 'DELETE':
-            // Baja de Vehículo (RF-02)
+        case 'DELETE': // Baja de vehiculo por patente
             $patente = strtoupper(trim($_GET['patente'] ?? ''));
             if (!$patente) {
                 http_response_code(400);
                 echo json_encode(["status" => "error", "message" => "Patente no especificada."]);
                 exit();
             }
-            $stmt = $pdo->prepare("DELETE FROM vehiculos WHERE patente = ?");
-            $stmt->execute([$patente]);
 
-            echo json_encode(["status" => "ok", "message" => "Vehículo $patente eliminado del sistema."]);
+            $sentencia = $pdo->prepare("DELETE FROM vehiculos WHERE patente = ?");
+            $sentencia->execute([$patente]);
+
+            echo json_encode(["status" => "ok", "message" => "Vehiculo $patente eliminado."]);
             break;
 
-        default:
+        default: // Cualquier otro verbo HTTP no soportado
             http_response_code(405);
-            echo json_encode(["status" => "error", "message" => "Método HTTP no permitido."]);
-            break;
+            echo json_encode(["status" => "error", "message" => "Metodo no permitido."]);
     }
 } catch (PDOException $e) {
     http_response_code(500);
     echo json_encode(["status" => "error", "message" => $e->getMessage()]);
 }
-?>

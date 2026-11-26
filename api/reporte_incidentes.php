@@ -1,113 +1,105 @@
 <?php
-// api/reporte_incidentes.php
-require_once __DIR__ . '/config/db.php';
+// api/reporte_incidentes.php - API CRUD e informe de incidentes (RF-03)
 
-$method = $_SERVER['REQUEST_METHOD'];
+require_once __DIR__ . '/config/db.php'; // Conexion PDO
+
+$metodo = $_SERVER['REQUEST_METHOD'];
+$entrada = json_decode(file_get_contents("php://input"), true) ?? [];
 
 try {
-    switch ($method) {
-        case 'GET':
-            // Informe de registro de incidentes con JOIN a vehículos y chofer/usuario
-            $sql = "SELECT i.id_incidentes, i.fecha, i.detalles, i.lugar, i.Estado, 
-                           i.patente_id, v.marca, v.modelo, 
+    switch ($metodo) {
+        case 'GET': // Lista incidentes uniendo vehiculo, chofer y usuario
+            $sql = "SELECT i.id_incidentes, i.fecha, i.detalles, i.lugar, i.Estado,
+                           i.patente_id, v.marca, v.modelo,
                            i.nro_legajo_id, c.licencia, u.nombre AS nombre_chofer
                     FROM incidentes i
                     LEFT JOIN vehiculos v ON i.patente_id = v.patente
                     LEFT JOIN chofer c ON i.nro_legajo_id = c.nro_legajo
                     LEFT JOIN usuario u ON c.id_usuarios = u.id_usuarios
                     ORDER BY i.fecha DESC";
-            $stmt = $pdo->query($sql);
-            echo json_encode(["status" => "ok", "data" => $stmt->fetchAll()]);
+            $sentencia = $pdo->query($sql);
+            echo json_encode(["status" => "ok", "data" => $sentencia->fetchAll()]);
             break;
 
-        case 'POST':
-            // Alta de Incidente (RF-03)
-            $input = json_decode(file_get_contents("php://input"), true);
-            $fecha      = $input['fecha'] ?? date('Y-m-d H:i:s');
-            $detalles   = trim($input['detalles'] ?? '');
-            $lugar      = trim($input['lugar'] ?? '');
-            $estado     = trim($input['Estado'] ?? 'Abierto');
-            $patente_id = strtoupper(trim($input['patente_id'] ?? ''));
-            $legajo_id  = intval($input['nro_legajo_id'] ?? 0);
+        case 'POST': // Registra un incidente nuevo con validaciones del RF-03
+            $fecha      = $entrada['fecha'] ?? date('Y-m-d H:i:s');
+            $detalles   = trim($entrada['detalles'] ?? '');
+            $lugar      = trim($entrada['lugar'] ?? '');
+            $estado     = trim($entrada['Estado'] ?? 'Abierto');
+            $patenteId  = strtoupper(trim($entrada['patente_id'] ?? ''));
+            $legajoId   = intval($entrada['nro_legajo_id'] ?? 0);
 
-            // Excepción RF-03: Campos obligatorios vacíos
-            if (!$detalles || !$lugar || !$patente_id || $legajo_id <= 0) {
+            if (!$detalles || !$lugar || !$patenteId || $legajoId <= 0) { // Obligatorios completos
                 http_response_code(400);
-                echo json_encode([
-                    "status" => "error",
-                    "message" => "Excepción RF-03: Todos los campos obligatorios deben completarse."
-                ]);
+                echo json_encode(["status" => "error", "message" => "Excepcion RF-03: Complete todos los campos obligatorios."]);
                 exit();
             }
 
-            // Excepción RF-03: Verificar estado del vehículo
-            $stmtVeh = $pdo->prepare("SELECT Estado FROM vehiculos WHERE patente = ?");
-            $stmtVeh->execute([$patente_id]);
-            $vehiculo = $stmtVeh->fetch();
+            $consultaVeh = $pdo->prepare("SELECT Estado FROM vehiculos WHERE patente = ?"); // Verifica si existe la unidad y su estado
+            $consultaVeh->execute([$patenteId]);
+            $vehiculo = $consultaVeh->fetch();
 
             if (!$vehiculo) {
                 http_response_code(404);
-                echo json_encode(["status" => "error", "message" => "La patente $patente_id no existe."]);
+                echo json_encode(["status" => "error", "message" => "La patente $patenteId no existe."]);
                 exit();
             }
 
-            if (strcasecmp($vehiculo['Estado'], 'Fuera de Servicio') === 0) {
+            if (strcasecmp($vehiculo['Estado'], 'Fuera de Servicio') === 0) { // No admite incidentes si esta fuera de servicio
                 http_response_code(409);
-                echo json_encode([
-                    "status" => "error",
-                    "message" => "Excepción RF-03: No se puede reportar incidente sobre una unidad Fuera de Servicio ($patente_id)."
-                ]);
+                echo json_encode(["status" => "error", "message" => "Excepcion RF-03: Unidad $patenteId Fuera de Servicio."]);
                 exit();
             }
 
-            // Verificar existencia del chofer
-            $stmtCh = $pdo->prepare("SELECT nro_legajo FROM chofer WHERE nro_legajo = ?");
-            $stmtCh->execute([$legajo_id]);
-            if (!$stmtCh->fetch()) {
+            $consultaCh = $pdo->prepare("SELECT nro_legajo FROM chofer WHERE nro_legajo = ?"); // Verifica existencia del chofer
+            $consultaCh->execute([$legajoId]);
+            if (!$consultaCh->fetch()) {
                 http_response_code(404);
-                echo json_encode(["status" => "error", "message" => "El legajo de chofer #$legajo_id no existe."]);
+                echo json_encode(["status" => "error", "message" => "El legajo #$legajoId no existe."]);
                 exit();
             }
 
-            $sql = "INSERT INTO incidentes (fecha, detalles, lugar, Estado, patente_id, nro_legajo_id) 
-                    VALUES (?, ?, ?, ?, ?, ?)";
-            $stmt = $pdo->prepare($sql);
-            $stmt->execute([$fecha, $detalles, $lugar, $estado, $patente_id, $legajo_id]);
+            $sql = "INSERT INTO incidentes (fecha, detalles, lugar, Estado, patente_id, nro_legajo_id) VALUES (?, ?, ?, ?, ?, ?)";
+            $pdo->prepare($sql)->execute([$fecha, $detalles, $lugar, $estado, $patenteId, $legajoId]);
 
             echo json_encode([
                 "status" => "ok",
-                "message" => "Incidente registrado correctamente.",
-                "id_incidentes" => $pdo->lastInsertId()
+                "message" => "Incidente registrado.",
+                "id_incidentes" => $pdo->lastInsertId() // Devuelve el ID generado en MySQL
             ]);
             break;
 
-        case 'PUT':
-            // Actualizar estado del incidente
-            $input = json_decode(file_get_contents("php://input"), true);
-            $id     = intval($input['id_incidentes'] ?? 0);
-            $estado = trim($input['Estado'] ?? 'En Revisión');
+        case 'PUT': // Actualiza solo el estado del incidente
+            $id     = intval($entrada['id_incidentes'] ?? 0);
+            $estado = trim($entrada['Estado'] ?? 'En Revisión');
 
-            $stmt = $pdo->prepare("UPDATE incidentes SET Estado = ? WHERE id_incidentes = ?");
-            $stmt->execute([$estado, $id]);
+            if ($id <= 0) {
+                http_response_code(400);
+                echo json_encode(["status" => "error", "message" => "ID de incidente invalido."]);
+                exit();
+            }
 
-            echo json_encode(["status" => "ok", "message" => "Estado del incidente #$id actualizado a $estado."]);
+            $pdo->prepare("UPDATE incidentes SET Estado = ? WHERE id_incidentes = ?")->execute([$estado, $id]);
+            echo json_encode(["status" => "ok", "message" => "Incidente #$id actualizado a $estado."]);
             break;
 
-        case 'DELETE':
+        case 'DELETE': // Elimina un incidente por ID
             $id = intval($_GET['id_incidentes'] ?? 0);
-            $stmt = $pdo->prepare("DELETE FROM incidentes WHERE id_incidentes = ?");
-            $stmt->execute([$id]);
+            if ($id <= 0) {
+                http_response_code(400);
+                echo json_encode(["status" => "error", "message" => "ID de incidente no especificado."]);
+                exit();
+            }
 
+            $pdo->prepare("DELETE FROM incidentes WHERE id_incidentes = ?")->execute([$id]);
             echo json_encode(["status" => "ok", "message" => "Incidente #$id eliminado."]);
             break;
 
         default:
             http_response_code(405);
-            echo json_encode(["status" => "error", "message" => "Método no permitido."]);
-            break;
+            echo json_encode(["status" => "error", "message" => "Metodo no permitido."]);
     }
 } catch (PDOException $e) {
     http_response_code(500);
     echo json_encode(["status" => "error", "message" => $e->getMessage()]);
 }
-?>
