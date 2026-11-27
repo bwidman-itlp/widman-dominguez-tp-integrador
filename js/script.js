@@ -130,8 +130,22 @@ setInterval(() => {
 }, 1000);
 
 /* --------------------------------------------------------------------------
-   SECCIÓN 4: AUTENTICACIÓN Y SINCRONIZACIÓN CON MYSQL (PHP)
+   SECCIÓN 4: AUTENTICACIÓN, PERSISTENCIA DE SESIÓN Y SINCRONIZACIÓN
    -------------------------------------------------------------------------- */
+const CLAVE_SESION_STORAGE = 'vektor360_usuario_activo';
+
+function activarInterfazUsuario(usuario) {
+    usuarioActivo = usuario;
+    sessionStorage.setItem(CLAVE_SESION_STORAGE, JSON.stringify(usuario));
+
+    document.getElementById('capa-ingreso').classList.add('oculto');
+    document.getElementById('ventana-aplicacion').classList.remove('oculto');
+    document.getElementById('etiqueta-usuario').textContent = `Usuario: ${usuarioActivo.nombre} (${usuarioActivo.cargo})`;
+    document.getElementById('estado-rol').textContent = `Rol Activo: ${usuarioActivo.cargo}`;
+
+    aplicarPermisosEnPantalla();
+}
+
 async function iniciarSesion() {
     const correo = document.getElementById('correo-ingreso').value.trim();
     const clave = document.getElementById('clave-ingreso').value.trim();
@@ -153,14 +167,7 @@ async function iniciarSesion() {
         }
 
         cajaError.classList.add('oculto');
-        usuarioActivo = json.usuario;
-
-        document.getElementById('capa-ingreso').classList.add('oculto');
-        document.getElementById('ventana-aplicacion').classList.remove('oculto');
-        document.getElementById('etiqueta-usuario').textContent = `Usuario: ${usuarioActivo.nombre} (${usuarioActivo.cargo})`;
-        document.getElementById('estado-rol').textContent = `Rol Activo: ${usuarioActivo.cargo}`;
-
-        aplicarPermisosEnPantalla();
+        activarInterfazUsuario(json.usuario);
         await cargarDatosDesdePHP();
         cambiarModulo('dashboard');
     } catch (e) {
@@ -174,9 +181,46 @@ async function cerrarSesion() {
         await fetch('api/login.php', { method: 'DELETE', credentials: 'same-origin' });
     } catch (e) {}
     usuarioActivo = null;
+    sessionStorage.removeItem(CLAVE_SESION_STORAGE);
     document.getElementById('ventana-aplicacion').classList.add('oculto');
     document.getElementById('capa-ingreso').classList.remove('oculto');
 }
+
+async function restaurarSesionAlCargar() {
+    const guardado = sessionStorage.getItem(CLAVE_SESION_STORAGE);
+    if (!guardado) return;
+
+    try {
+        const usuarioGuardado = JSON.parse(guardado);
+        if (!usuarioGuardado || !usuarioGuardado.id_usuarios) {
+            sessionStorage.removeItem(CLAVE_SESION_STORAGE);
+            return;
+        }
+
+        // Validamos con el servidor PHP que la sesión siga vigente
+        const resp = await fetch('api/login.php', { method: 'GET', credentials: 'same-origin' });
+        if (resp.status === 401) {
+            sessionStorage.removeItem(CLAVE_SESION_STORAGE);
+            return;
+        }
+
+        let usuarioFinal = usuarioGuardado;
+        if (resp.ok) {
+            const json = await resp.json();
+            if (json.status === 'ok' && json.usuario) {
+                usuarioFinal = json.usuario;
+            }
+        }
+
+        activarInterfazUsuario(usuarioFinal);
+        await cargarDatosDesdePHP();
+        cambiarModulo('dashboard');
+    } catch (e) {
+        sessionStorage.removeItem(CLAVE_SESION_STORAGE);
+    }
+}
+
+document.addEventListener('DOMContentLoaded', restaurarSesionAlCargar);
 
 async function cargarDatosDesdePHP() {
     const rutas = [
@@ -198,7 +242,7 @@ async function cargarDatosDesdePHP() {
             const resp = await fetch(url, { credentials: 'same-origin' });
             if (resp.status === 401) {
                 alert('Su sesión ha expirado. Por favor, vuelva a iniciar sesión.');
-                cerrarSesion();
+                await cerrarSesion();
                 return;
             }
             const json = await resp.json();
@@ -209,7 +253,6 @@ async function cargarDatosDesdePHP() {
     }
     renderizarModulo();
 }
-
 /* --------------------------------------------------------------------------
    SECCIÓN 5: NAVEGACIÓN ENTRE MÓDULOS Y FILTROS
    -------------------------------------------------------------------------- */
