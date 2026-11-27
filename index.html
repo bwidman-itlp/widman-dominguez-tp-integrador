@@ -1,47 +1,48 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
+    <!-- SECCIÓN 1: METADATOS Y RECURSOS EXTERNOS -->
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>VEKTOR 360 - Control y Mantenimiento de Flotas</title>
-    <link rel="stylesheet" href="css/style.css?v=6">
+    <link rel="stylesheet" href="css/style.css?v=7">
     <link rel="icon" type="image/png" href="img/vektorfavicon.png">
 </head>
 <body>
 
-    <!-- MODAL DE INICIO DE SESION -->
+    <!-- SECCIÓN 2: PANTALLA DE INICIO DE SESIÓN -->
     <div id="capa-ingreso" class="capa-ingreso">
         <div class="caja-ingreso">
             <div class="encabezado-ingreso">
                 <img src="img/vektor360.png" alt="VEKTOR 360" class="logo-ingreso">
-                <span class="etiqueta-plana">v1.0 - MySQL: vektor360.2</span>
+                <span class="etiqueta-plana">v1.0 - MySQL: vektor360_3</span>
             </div>
-            <div class="cuerpo-ingreso">
+            <form class="cuerpo-ingreso" onsubmit="event.preventDefault(); iniciarSesion();">
                 <p class="subtitulo-ingreso">Ingrese sus credenciales corporativas</p>
 
                 <div class="grupo-campo">
-                    <label for="correo-ingreso">Email Corporativo:</label>
-                    <input type="text" id="correo-ingreso" placeholder="admin@vektor360.com" value="admin@vektor360.com">
+                    <label for="correo-ingreso">Email Corporativo: <span class="req">*</span></label>
+                    <input type="email" id="correo-ingreso" placeholder="admin@vektor360.com" value="admin@vektor360.com" required>
                 </div>
                 <div class="grupo-campo">
-                    <label for="clave-ingreso">Contraseña:</label>
-                    <input type="password" id="clave-ingreso" placeholder="••••••••" value="P4$$W0RD">
+                    <label for="clave-ingreso">Contraseña: <span class="req">*</span></label>
+                    <input type="password" id="clave-ingreso" placeholder="••••••••" value="P4$$W0RD" required>
                 </div>
+                <p class="nota-requeridos"><span class="req">*</span> Campos obligatorios</p>
                 <div id="error-ingreso" class="caja-error oculto">Credenciales no válidas. Reintente</div>
 
-                <button type="button" class="boton-bordo ancho-100" onclick="iniciarSesion()">INGRESAR AL SISTEMA</button>
-            </div>
+                <button type="submit" class="boton-bordo ancho-100">INGRESAR AL SISTEMA</button>
+            </form>
         </div>
     </div>
 
-    <!-- APLICACION PRINCIPAL -->
+    <!-- SECCIÓN 3: CONTENEDOR PRINCIPAL DE LA APLICACIÓN -->
     <div id="ventana-aplicacion" class="ventana-aplicacion oculto">
 
-        <!-- BARRA DE MENUS DESPLEGABLES -->
+        <!-- SECCIÓN 3.1: BARRA SUPERIOR DE MENÚS DESPLEGABLES -->
         <div class="barra-menu" id="barra-menu">
             <div class="menu-izquierda">
 
-                <!-- ARCHIVO -->
                 <div class="menu-desplegable">
                     <button type="button" class="boton-menu-desp" onclick="alternarMenuDesplegable('menu-archivo')">Archivo ▾</button>
                     <div class="panel-desplegable oculto" id="menu-archivo">
@@ -55,17 +56,14 @@
                     </div>
                 </div>
 
-                <!-- EDICION -->
                 <div class="menu-desplegable">
                     <button type="button" class="boton-menu-desp" onclick="alternarMenuDesplegable('menu-edicion')">Edición ▾</button>
                     <div class="panel-desplegable oculto" id="menu-edicion">
-                        <button type="button" onclick="deshacerCambio(); cerrarMenus()">Deshacer último cambio (Ctrl+Z)</button>
                         <button type="button" onclick="limpiarFiltros(); cerrarMenus()">Limpiar filtros de búsqueda</button>
                         <button type="button" onclick="enfocarBuscador(); cerrarMenus()">Buscar en tabla actual</button>
                     </div>
                 </div>
 
-                <!-- INVENTARIO -->
                 <div class="menu-desplegable" id="menu-grupo-inventario">
                     <button type="button" class="boton-menu-desp" onclick="alternarMenuDesplegable('menu-inventario')">Inventario ▾</button>
                     <div class="panel-desplegable oculto" id="menu-inventario">
@@ -78,7 +76,6 @@
                     </div>
                 </div>
 
-                <!-- INFORMES -->
                 <div class="menu-desplegable" id="menu-grupo-informes">
                     <button type="button" class="boton-menu-desp" onclick="alternarMenuDesplegable('menu-informes')">Informes ▾</button>
                     <div class="panel-desplegable oculto" id="menu-informes">
@@ -90,7 +87,6 @@
                     </div>
                 </div>
 
-                <!-- AYUDA -->
                 <div class="menu-desplegable">
                     <button type="button" class="boton-menu-desp" onclick="alternarMenuDesplegable('menu-ayuda')">Ayuda ▾</button>
                     <div class="panel-desplegable oculto" id="menu-ayuda">
@@ -106,7 +102,7 @@
             </div>
         </div>
 
-        <!-- BARRA DE HERRAMIENTAS -->
+        <!-- SECCIÓN 3.2: BARRA DE HERRAMIENTAS RÁPIDAS -->
         <div class="barra-herramientas">
             <button type="button" class="boton-alternar-lateral" id="boton-alternar-lateral" onclick="alternarBarraLateral()" title="Desplegar / Contraer Menú Lateral">☰</button>
             <img src="img/vektor360.png" alt="Logo" class="logo-barra">
@@ -115,13 +111,11 @@
             <button type="button" class="boton-herramienta" id="boton-barra-nuevo" onclick="abrirModalNuevo()"><span>+ Nuevo</span></button>
             <button type="button" class="boton-herramienta" onclick="enfocarBuscador()"><span>Buscar</span></button>
             <button type="button" class="boton-herramienta" onclick="cargarDatosDesdePHP()"><span>Sincronizar</span></button>
-            <button type="button" class="boton-herramienta" onclick="deshacerCambio()" title="Deshacer último cambio"><span>↶ Deshacer</span></button>
         </div>
 
-        <!-- CONTENEDOR PRINCIPAL -->
+        <!-- SECCIÓN 3.3: ESPACIO DE TRABAJO -->
         <div class="espacio-trabajo">
 
-            <!-- BARRA LATERAL DESPLEGABLE -->
             <aside class="barra-lateral" id="barra-lateral">
                 <div class="encabezado-lateral"><span class="texto-nav">Principal</span></div>
                 <ul class="lista-lateral">
@@ -150,7 +144,6 @@
                 </ul>
             </aside>
 
-            <!-- AREA DE TRABAJO PRINCIPAL -->
             <main class="area-contenido modo-dashboard" id="area-contenido">
 
                 <div class="encabezado-modulo oculto" id="encabezado-modulo">
@@ -158,7 +151,7 @@
                     <span id="etiqueta-info-modulo"></span>
                 </div>
 
-                <!-- BARRA DE FILTROS -->
+                <!-- Filtros de texto y estado -->
                 <div class="barra-filtros oculto" id="barra-filtros">
                     <div class="grupo-filtro">
                         <label for="entrada-busqueda">Búsqueda rápida:</label>
@@ -180,27 +173,33 @@
                             <option value="Recibido">Recibido</option>
                         </select>
                     </div>
+                    <div class="grupo-filtro oculto" id="grupo-filtro-bajas">
+                        <label class="checkbox-inline">
+                            <input type="checkbox" id="mostrar-bajas-vehiculos" onchange="filtrarTablaActual()">
+                            Mostrar unidades dadas de baja
+                        </label>
+                    </div>
                     <button type="button" class="boton-bordo" id="boton-agregar-registro" onclick="abrirModalNuevo()">+ Agregar Registro</button>
                 </div>
 
-                <!-- GRILLA / CONTENIDO DINAMICO -->
+                <!-- Contenedor dinámico -->
                 <div id="vista-dinamica" class="contenedor-grilla"></div>
 
-                <!-- PANEL INFERIOR DE RESUMEN -->
+                <!-- Barra inferior con contadores -->
                 <div class="panel-resumen-inferior oculto" id="resumen-inferior"></div>
 
             </main>
         </div>
 
-        <!-- BARRA DE ESTADO INFERIOR -->
+        <!-- SECCIÓN 3.4: BARRA DE ESTADO INFERIOR -->
         <footer class="barra-estado">
-            <div class="item-estado">Servidor: <strong>Apache + MySQL (vektor360.2)</strong></div>
+            <div class="item-estado">Servidor: <strong>Apache + MySQL (vektor360_3)</strong></div>
             <div class="item-estado" id="estado-rol">Rol Activo: ---</div>
             <div class="item-estado" id="estado-reloj">--/--/---- --:--</div>
         </footer>
     </div>
 
-    <!-- MODAL UNIVERSAL ABM -->
+    <!-- SECCIÓN 4: MODAL UNIVERSAL DE ALTA / EDICIÓN (ABM) -->
     <div id="modal-abm" class="fondo-modal oculto">
         <div class="ventana-modal">
             <div class="encabezado-modal">
@@ -209,15 +208,16 @@
             </div>
             <form id="formulario-abm" onsubmit="guardarRegistro(event)">
                 <div id="campos-modal" class="cuerpo-modal"></div>
+                <p class="nota-requeridos pie-nota-modal"><span class="req">*</span> Campos obligatorios</p>
                 <div id="error-modal" class="caja-error oculto"></div>
                 <div class="pie-modal">
                     <button type="button" class="boton-plano" onclick="cerrarModal()">Cancelar</button>
-                    <button type="submit" class="boton-bordo">Guardar Registro</button>
+                    <button type="submit" class="boton-bordo" id="boton-guardar-modal">Guardar Registro</button>
                 </div>
             </form>
         </div>
     </div>
 
-    <script src="js/script.js?v=6"></script>
+    <script src="js/script.js?v=7"></script>
 </body>
 </html>

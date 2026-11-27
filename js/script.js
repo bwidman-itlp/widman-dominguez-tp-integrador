@@ -2,15 +2,17 @@
    VEKTOR 360 - SCRIPT PRINCIPAL
    ========================================================================== */
 
-let usuarioActivo = null;       // Usuario que inicio sesion
-let moduloActual = 'dashboard';   // Vista actualmente abierta
-let editandoId = null;          // Clave o ID al editar
-let historialDeshacer = [];    // Copias anteriores para deshacer
-let modoOscuro = false;         // Estado del tema visual
+/* --------------------------------------------------------------------------
+   SECCIÓN 1: ESTADO GLOBAL Y MATRIZ DE PERMISOS POR CARGO
+   -------------------------------------------------------------------------- */
+let usuarioActivo = null;       // Datos del usuario autenticado desde MySQL
+let moduloActual = 'dashboard';   // Módulo activo en pantalla
+let editandoId = null;          // Clave primaria del registro en edición (null si es alta)
+let modoOscuro = false;         // Indica si está activo el tema oscuro
 
 const RUTA_BANNER = 'img/banner.png';
+const REQ = '<span class="req">*</span>';
 
-// Modulos visibles segun el campo "cargo" del usuario
 const MODULOS_POR_CARGO = {
     'administrador': ['dashboard', 'vehiculos', 'choferes', 'usuarios', 'proveedores', 'repuestos', 'incidentes', 'trabajan', 'solicita', 'reportes', 'sql-info'],
     'admin.': ['dashboard', 'vehiculos', 'choferes', 'usuarios', 'proveedores', 'repuestos', 'incidentes', 'trabajan', 'solicita', 'reportes', 'sql-info'],
@@ -20,79 +22,68 @@ const MODULOS_POR_CARGO = {
     'chofer': ['dashboard', 'vehiculos', 'incidentes']
 };
 
-// Modulos donde el usuario puede crear/editar/borrar segun su cargo
 const EDICION_POR_CARGO = {
     'administrador': ['vehiculos', 'choferes', 'usuarios', 'proveedores', 'repuestos', 'incidentes', 'trabajan', 'solicita'],
     'admin.': ['vehiculos', 'choferes', 'usuarios', 'proveedores', 'repuestos', 'incidentes', 'trabajan', 'solicita'],
     'encargado de taller': ['vehiculos', 'repuestos', 'incidentes', 'trabajan'],
     'jefa de logística': ['vehiculos', 'choferes', 'proveedores', 'repuestos', 'solicita'],
     'gerente de logística': ['vehiculos', 'choferes', 'proveedores', 'repuestos', 'solicita'],
-    'chofer': ['incidentes'] // Solo puede registrar/gestionar incidentes
+    'chofer': ['incidentes']
 };
 
-// Datos iniciales en memoria (se sincronizan con PHP cuando existen los endpoints)
 const datos = {
-    usuario: [
-        { id_usuarios: 1, DNI: '35489123', nombre: 'Administrador Vektor', cargo: 'Administrador', email: 'admin@vektor360.com', contraseña: 'P4$$W0RD' },
-        { id_usuarios: 2, DNI: '28994112', nombre: 'Esteban Dominguez', cargo: 'Encargado de Taller', email: 'edtaller@vektor360.com', contraseña: 'P4$$W0RD' },
-        { id_usuarios: 3, DNI: '32115488', nombre: 'Mariana Gomez', cargo: 'Jefa de Logística', email: 'mgomez@vektor360.com', contraseña: 'P4$$W0RD' },
-        { id_usuarios: 3, DNI: '47888362', nombre: 'Benjamín Widman', cargo: 'ADMIN.', email: 'bwidman@vektor360.com', contraseña: 'P4$$W0RD' },
-        { id_usuarios: 5, DNI: '30456789', nombre: 'Lucas Fernandez', cargo: 'Chofer', email: 'lfernandez@vektor360.com', contraseña: 'P4$$W0RD' }
-    ],
-    chofer: [
-        { nro_legajo: 101, licencia: 'B1-998822', id_usuarios: 1 },
-        { nro_legajo: 102, licencia: 'E2-443322', id_usuarios: 2 },
-        { nro_legajo: 111, licencia: 'E2-774411', id_usuarios: 5 }
-    ],
+    usuario: [],
+    chofer: [],
     vehiculos: [],
-    proveedor: [
-        { id_proveedor: 1, razon_social: 'Repuestos del Litoral S.A.', telefono: '011-4555-1234', email: 'ventas@litoralsat.com' },
-        { id_proveedor: 2, razon_social: 'Frenos y Partes Norte', telefono: '0341-4888-9999', email: 'contacto@frenosnorte.com' }
-    ],
-    repuestos: [
-        { cod_repuesto: 'REP-001', Stock: 15, Stock_minimo: 5, Costo_unitario: 12500.00, id_usuarios: 2 },
-        { cod_repuesto: 'REP-002', Stock: 3, Stock_minimo: 8, Costo_unitario: 45000.50, id_usuarios: 2 },
-        { cod_repuesto: 'REP-003', Stock: 25, Stock_minimo: 10, Costo_unitario: 3200.00, id_usuarios: 2 }
-    ],
+    proveedor: [],
+    repuestos: [],
     incidentes: [],
-    trabajan: [
-        { id_trabajan: 1, id_incidentes: 2, cod_repuesto: 'REP-002', id_usuarios: 2, fecha: '2026-10-26 10:00:00', cantidad: 1 }
-    ],
-    solicita: [
-        { id_solicita: 1, id_proveedor: 2, cod_repuesto: 'REP-002', id_usuarios: 2, fecha: '2026-10-27 09:30:00', cantidad: 10, estado: 'Pendiente' }
-    ]
+    trabajan: [],
+    solicita: []
 };
 
+/* --------------------------------------------------------------------------
+   UTILIDADES DE FECHA LOCAL (EVITA CONVERSIÓN A UTC)
+   -------------------------------------------------------------------------- */
+function obtenerFechaHoraLocalSQL(fecha = new Date()) {
+    const pad = n => String(n).padStart(2, '0');
+    const anio = fecha.getFullYear();
+    const mes = pad(fecha.getMonth() + 1);
+    const dia = pad(fecha.getDate());
+    const horas = pad(fecha.getHours());
+    const minutos = pad(fecha.getMinutes());
+    const segundos = pad(fecha.getSeconds());
+    return `${anio}-${mes}-${dia} ${horas}:${minutos}:${segundos}`;
+}
+
+/* --------------------------------------------------------------------------
+   SECCIÓN 2: CONTROL DE ACCESO Y VISIBILIDAD POR RANGO
+   -------------------------------------------------------------------------- */
 function normalizarCargo() {
     return String(usuarioActivo?.cargo || '').toLowerCase().trim();
 }
 
 function puedeVerModulo(mod) {
     if (!usuarioActivo) return false;
-    const lista = MODULOS_POR_CARGO[normalizarCargo()] || ['dashboard'];
-    return lista.includes(mod);
+    return (MODULOS_POR_CARGO[normalizarCargo()] || ['dashboard']).includes(mod);
 }
 
 function puedeEditarModulo(mod = moduloActual) {
     if (!usuarioActivo) return false;
-    const lista = EDICION_POR_CARGO[normalizarCargo()] || [];
-    return lista.includes(mod);
+    return (EDICION_POR_CARGO[normalizarCargo()] || []).includes(mod);
 }
 
 function aplicarPermisosEnPantalla() {
-    // Filtra items del menu lateral segun rango
     document.querySelectorAll('.lista-lateral li').forEach(li => {
         const mod = li.getAttribute('data-mod');
         li.classList.toggle('oculto', !puedeVerModulo(mod));
     });
 
-    // Oculta seccion Gerencia si no ve reportes ni sql-info
     const seccionGerencia = document.getElementById('seccion-gerencia');
     if (seccionGerencia) {
         seccionGerencia.classList.toggle('oculto', !puedeVerModulo('reportes') && !puedeVerModulo('sql-info'));
     }
 
-    // Oculta menus superiores de Inventario o Informes si no aplica
     document.getElementById('menu-grupo-inventario')?.classList.toggle('oculto', !puedeVerModulo('repuestos'));
     document.getElementById('menu-grupo-informes')?.classList.toggle('oculto', !puedeVerModulo('reportes'));
 }
@@ -104,11 +95,13 @@ function actualizarBotonesEdicion() {
     document.getElementById('menu-nuevo-reg')?.classList.toggle('oculto', !habilitado);
 }
 
+/* --------------------------------------------------------------------------
+   SECCIÓN 3: INTERFAZ, MENÚS, TEMA Y RELOJ
+   -------------------------------------------------------------------------- */
 function alternarBarraLateral() {
     document.getElementById('barra-lateral')?.classList.toggle('contraida');
 }
 
-// ==================== MENUS DESPLEGABLES ====================
 function alternarMenuDesplegable(idMenu) {
     const destino = document.getElementById(idMenu);
     const yaAbierto = destino && !destino.classList.contains('oculto');
@@ -124,7 +117,6 @@ document.addEventListener('click', (evento) => {
     if (!evento.target.closest('.menu-desplegable')) cerrarMenus();
 });
 
-// ==================== TEMA OSCURO / CLARO ====================
 function alternarTema() {
     modoOscuro = !modoOscuro;
     document.body.classList.toggle('tema-oscuro', modoOscuro);
@@ -132,89 +124,97 @@ function alternarTema() {
     if (botonTema) botonTema.textContent = modoOscuro ? 'Cambiar a Tema Claro' : 'Cambiar a Tema Oscuro';
 }
 
-// ==================== HISTORIAL DESHACER ====================
-function guardarCopiaEstado() {
-    historialDeshacer.push(JSON.stringify(datos));
-    if (historialDeshacer.length > 20) historialDeshacer.shift();
-}
-
-function deshacerCambio() {
-    if (historialDeshacer.length === 0) return alert('No hay cambios recientes para deshacer.');
-    Object.assign(datos, JSON.parse(historialDeshacer.pop()));
-    renderizarModulo();
-    alert('Se deshizo el último cambio.');
-}
-
 setInterval(() => {
     const reloj = document.getElementById('estado-reloj');
     if (reloj) reloj.textContent = `${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}`;
 }, 1000);
 
-// ==================== INICIO DE SESION ====================
+/* --------------------------------------------------------------------------
+   SECCIÓN 4: AUTENTICACIÓN Y SINCRONIZACIÓN CON MYSQL (PHP)
+   -------------------------------------------------------------------------- */
 async function iniciarSesion() {
-    const correo = document.getElementById('correo-ingreso').value.trim(); // Toma email del input
-    const clave = document.getElementById('clave-ingreso').value.trim(); // Toma clave del input
+    const correo = document.getElementById('correo-ingreso').value.trim();
+    const clave = document.getElementById('clave-ingreso').value.trim();
     const cajaError = document.getElementById('error-ingreso');
 
-    let usuario = null;
-
     try {
-        // Consulta directa a MySQL vía PHP
         const resp = await fetch('api/login.php', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
+            credentials: 'same-origin',
             body: JSON.stringify({ email: correo, contraseña: clave })
         });
         const json = await resp.json();
-        if (resp.ok && json.status === 'ok' && json.usuario) {
-            usuario = json.usuario; // Usuario validado desde la BD
+
+        if (!resp.ok || json.status !== 'ok' || !json.usuario) {
+            cajaError.textContent = json.message || 'Credenciales no válidas. Reintente';
+            cajaError.classList.remove('oculto');
+            return;
         }
+
+        cajaError.classList.add('oculto');
+        usuarioActivo = json.usuario;
+
+        document.getElementById('capa-ingreso').classList.add('oculto');
+        document.getElementById('ventana-aplicacion').classList.remove('oculto');
+        document.getElementById('etiqueta-usuario').textContent = `Usuario: ${usuarioActivo.nombre} (${usuarioActivo.cargo})`;
+        document.getElementById('estado-rol').textContent = `Rol Activo: ${usuarioActivo.cargo}`;
+
+        aplicarPermisosEnPantalla();
+        await cargarDatosDesdePHP();
+        cambiarModulo('dashboard');
     } catch (e) {
-        // Respaldo local si se abre sin servidor PHP activo
-        usuario = datos.usuario.find(u => u.email === correo && u.contraseña === clave) || null;
-    }
-
-    if (!usuario) { // Si falló la validación
+        cajaError.textContent = 'No se pudo conectar con el servidor PHP.';
         cajaError.classList.remove('oculto');
-        return;
     }
-
-    cajaError.classList.add('oculto'); // Limpia error previo
-    usuarioActivo = usuario; // Guarda usuario y su cargo para permisos
-
-    document.getElementById('capa-ingreso').classList.add('oculto'); // Oculta pantalla de login
-    document.getElementById('ventana-aplicacion').classList.remove('oculto'); // Muestra el sistema
-    document.getElementById('etiqueta-usuario').textContent = `Usuario: ${usuario.nombre} (${usuario.cargo})`;
-    document.getElementById('estado-rol').textContent = `Rol Activo: ${usuario.cargo}`;
-
-    aplicarPermisosEnPantalla(); // Aplica módulos visibles según el cargo
-    cargarDatosDesdePHP(); // Sincroniza vehículos e incidentes
-    cambiarModulo('dashboard');
 }
 
-function cerrarSesion() {
+async function cerrarSesion() {
+    try {
+        await fetch('api/login.php', { method: 'DELETE', credentials: 'same-origin' });
+    } catch (e) {}
     usuarioActivo = null;
     document.getElementById('ventana-aplicacion').classList.add('oculto');
     document.getElementById('capa-ingreso').classList.remove('oculto');
 }
 
-// ==================== CONEXION CON PHP ====================
 async function cargarDatosDesdePHP() {
-    try {
-        const respVeh = await fetch('api/vehiculos.php');
-        const jsonVeh = await respVeh.json();
-        if (jsonVeh.status === 'ok' && Array.isArray(jsonVeh.data)) datos.vehiculos = jsonVeh.data;
+    const rutas = [
+        ['vehiculos', 'api/vehiculos.php'],
+        ['chofer', 'api/choferes.php'],
+        ['usuario', 'api/usuarios.php'],
+        ['proveedor', 'api/proveedores.php'],
+        ['repuestos', 'api/repuestos.php'],
+        ['incidentes', 'api/reporte_incidentes.php'],
+        ['trabajan', 'api/trabajan.php'],
+        ['solicita', 'api/solicita.php']
+    ];
 
-        const respInc = await fetch('api/reporte_incidentes.php');
-        const jsonInc = await respInc.json();
-        if (jsonInc.status === 'ok' && Array.isArray(jsonInc.data)) datos.incidentes = jsonInc.data;
-    } catch (e) {}
+    for (const [clave, url] of rutas) {
+        if (!puedeVerModulo(clave === 'chofer' ? 'choferes' : clave === 'usuario' ? 'usuarios' : clave === 'proveedor' ? 'proveedores' : clave)) {
+            continue;
+        }
+        try {
+            const resp = await fetch(url, { credentials: 'same-origin' });
+            if (resp.status === 401) {
+                alert('Su sesión ha expirado. Por favor, vuelva a iniciar sesión.');
+                cerrarSesion();
+                return;
+            }
+            const json = await resp.json();
+            if (resp.ok && json.status === 'ok' && Array.isArray(json.data)) {
+                datos[clave] = json.data;
+            }
+        } catch (e) {}
+    }
     renderizarModulo();
 }
 
-// ==================== NAVEGACION Y FILTROS ====================
+/* --------------------------------------------------------------------------
+   SECCIÓN 5: NAVEGACIÓN ENTRE MÓDULOS Y FILTROS
+   -------------------------------------------------------------------------- */
 function cambiarModulo(mod, filtroInicial = '') {
-    if (!puedeVerModulo(mod)) mod = 'dashboard'; // Bloquea modulos fuera del rango
+    if (!puedeVerModulo(mod)) mod = 'dashboard';
     moduloActual = mod;
     editandoId = null;
 
@@ -226,6 +226,7 @@ function cambiarModulo(mod, filtroInicial = '') {
     const encabezadoMod = document.getElementById('encabezado-modulo');
     const barraFiltros = document.getElementById('barra-filtros');
     const resumenInferior = document.getElementById('resumen-inferior');
+    const filtroBajas = document.getElementById('grupo-filtro-bajas');
 
     const esDashboard = mod === 'dashboard';
     const esPantallaSimple = mod === 'reportes' || mod === 'sql-info';
@@ -234,6 +235,7 @@ function cambiarModulo(mod, filtroInicial = '') {
     encabezadoMod.classList.toggle('oculto', esDashboard);
     barraFiltros.classList.toggle('oculto', esDashboard || esPantallaSimple);
     resumenInferior.classList.toggle('oculto', esDashboard || esPantallaSimple);
+    if (filtroBajas) filtroBajas.classList.toggle('oculto', mod !== 'vehiculos');
 
     actualizarBotonesEdicion();
 
@@ -241,7 +243,7 @@ function cambiarModulo(mod, filtroInicial = '') {
         limpiarFiltros(false);
         if (filtroInicial) {
             const inputBusqueda = document.getElementById('entrada-busqueda');
-            if (inputBusqueda) inputBusqueda.value = filtroInicial; // Filtra directo el incidente clickeado
+            if (inputBusqueda) inputBusqueda.value = filtroInicial;
         }
     }
     renderizarModulo();
@@ -249,14 +251,16 @@ function cambiarModulo(mod, filtroInicial = '') {
 
 function irAIncidenteDesdeOrden(idIncidente) {
     if (!puedeVerModulo('incidentes')) return alert('Tu rango no tiene acceso a Incidentes.');
-    cambiarModulo('incidentes', String(idIncidente)); // Salta a incidentes filtrando por ese ID
+    cambiarModulo('incidentes', String(idIncidente));
 }
 
 function limpiarFiltros(rerender = true) {
     const busqueda = document.getElementById('entrada-busqueda');
     const estado = document.getElementById('filtro-estado');
+    const chkBajas = document.getElementById('mostrar-bajas-vehiculos');
     if (busqueda) busqueda.value = '';
     if (estado) estado.value = 'TODOS';
+    if (chkBajas) chkBajas.checked = false;
     if (rerender) renderizarModulo();
 }
 
@@ -269,10 +273,12 @@ function filtrarTablaActual() {
     renderizarModulo();
 }
 
-// ==================== EXPORTAR A EXCEL (.xls) ====================
+/* --------------------------------------------------------------------------
+   SECCIÓN 6: EXPORTACIÓN A EXCEL (.xls) E INFORMES EN TEXTO (.txt)
+   -------------------------------------------------------------------------- */
 function exportarExcel(tabla) {
     const tablas = {
-        vehiculos: [['Patente', 'Marca', 'Modelo', 'Año', 'KM Actuales', 'Estado'], ...datos.vehiculos.map(v => [v.patente, v.marca, v.modelo, v.año, v.km_actuales, v.Estado])],
+        vehiculos: [['Patente', 'Marca', 'Modelo', 'Año', 'KM Actuales', 'Estado', 'Activo'], ...datos.vehiculos.map(v => [v.patente, v.marca, v.modelo, v.año, v.km_actuales, v.Estado, v.activo == 0 ? 'Baja' : 'Activo'])],
         repuestos: [['Codigo', 'Stock', 'Stock Minimo', 'Costo Unitario'], ...datos.repuestos.map(r => [r.cod_repuesto, r.Stock, r.Stock_minimo, r.Costo_unitario])],
         incidentes: [['ID', 'Fecha', 'Patente', 'Legajo', 'Lugar', 'Detalles', 'Estado'], ...datos.incidentes.map(i => [i.id_incidentes, i.fecha, i.patente_id, i.nro_legajo_id, i.lugar, i.detalles, i.Estado])],
         choferes: [['Nro Legajo', 'Licencia', 'ID Usuario'], ...datos.chofer.map(c => [c.nro_legajo, c.licencia, c.id_usuarios || ''])]
@@ -280,19 +286,18 @@ function exportarExcel(tabla) {
     const filas = tablas[tabla];
     if (!filas) return;
 
-    const escapar = val => String(val ?? '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    const escapar = val => String(val ?? '').replace(/</g, '<').replace(/>/g, '>');
     const tablaHtml = `<table border="1">${filas.map(fila => `<tr>${fila.map(celda => `<td>${escapar(celda)}</td>`).join('')}</tr>`).join('')}</table>`;
-    const blob = new Blob(['\uFEFF' + tablaHtml], { type: 'application/vnd.ms-excel;charset=utf-8;' });
-    descargarBlob(blob, `vektor360_${tabla}.xls`);
+    descargarBlob(new Blob(['\uFEFF' + tablaHtml], { type: 'application/vnd.ms-excel;charset=utf-8;' }), `vektor360_${tabla}.xls`);
 }
 
-// ==================== GENERAR INFORMES (.txt) ====================
 function descargarInformeTxt(tipo) {
     let texto = `VEKTOR 360 - INFORME (${tipo.toUpperCase()})\nFecha: ${new Date().toLocaleString()}\n\n`;
 
     if (tipo === 'general') {
-        texto += `Vehiculos: ${datos.vehiculos.length} | Choferes: ${datos.chofer.length} | Repuestos: ${datos.repuestos.length} | Incidentes: ${datos.incidentes.length}\n\n`;
-        datos.vehiculos.forEach(v => {
+        const activos = datos.vehiculos.filter(v => v.activo === undefined || Number(v.activo) === 1);
+        texto += `Vehiculos Activos: ${activos.length} | Choferes: ${datos.chofer.length} | Repuestos: ${datos.repuestos.length} | Incidentes: ${datos.incidentes.length}\n\n`;
+        activos.forEach(v => {
             texto += `* ${v.patente} | ${v.marca} ${v.modelo} (${v.año}) | ${Number(v.km_actuales).toLocaleString()} km | ${v.Estado}\n`;
         });
     } else if (tipo === 'stock') {
@@ -320,9 +325,15 @@ function descargarBlob(blob, nombreArchivo) {
     URL.revokeObjectURL(url);
 }
 
-// ==================== RENDERIZADO ====================
+/* --------------------------------------------------------------------------
+   SECCIÓN 7: RENDERIZADO DE VISTAS, TABLAS Y CÁLCULO CPK
+   -------------------------------------------------------------------------- */
 function leerEstado(item) {
     return (item.Estado ?? item.estado ?? '').toLowerCase();
+}
+
+function esVehiculoActivo(v) {
+    return v.activo === undefined || v.activo === null || Number(v.activo) === 1;
 }
 
 function renderizarModulo() {
@@ -338,17 +349,18 @@ function renderizarModulo() {
     const editables = puedeEditarModulo(moduloActual);
 
     if (moduloActual === 'dashboard') {
+        const vehiculosActivos = datos.vehiculos.filter(esVehiculoActivo);
         const stockBajo = datos.repuestos.filter(r => Number(r.Stock) <= Number(r.Stock_minimo)).length;
         const incAbiertos = datos.incidentes.filter(i => !['resuelto', 'solucionado'].includes(leerEstado(i))).length;
 
         const accesos = [
-            ['vehiculos', `VEHÍCULOS (${datos.vehiculos.length})`, 'Unidades y patentes'],
+            ['vehiculos', `VEHÍCULOS (${vehiculosActivos.length})`, 'Unidades y patentes activas'],
             ['choferes', `CHOFERES (${datos.chofer.length})`, 'Legajos y licencias'],
             ['usuarios', `USUARIOS (${datos.usuario.length})`, 'Cuentas y roles'],
             ['repuestos', `REPUESTOS (${datos.repuestos.length})`, 'Inventario y stock'],
             ['trabajan', `ÓRDENES TALLER (${datos.trabajan.length})`, 'Reparaciones e insumos'],
             ['solicita', `SOLICITUDES COMPRA (${datos.solicita.length})`, 'Pedidos a proveedores']
-        ].filter(([mod]) => puedeVerModulo(mod)); // Solo muestra accesos habilitados para el cargo
+        ].filter(([mod]) => puedeVerModulo(mod));
 
         vista.innerHTML = `
             <div class="tablero-dashboard">
@@ -359,7 +371,7 @@ function renderizarModulo() {
                 <div class="grilla-superior-dashboard">
                     ${puedeVerModulo('vehiculos') ? `
                     <div class="tarjeta-dashboard" onclick="cambiarModulo('vehiculos')">
-                        <div><h3>Flota</h3><p>${datos.vehiculos.length} unidades registradas en el sistema.</p></div>
+                        <div><h3>Flota</h3><p>${vehiculosActivos.length} unidades activas registradas en el sistema.</p></div>
                         <span class="flecha-dashboard">↗</span>
                     </div>` : ''}
                     ${puedeVerModulo('incidentes') ? `
@@ -382,22 +394,33 @@ function renderizarModulo() {
 
     if (moduloActual === 'vehiculos') {
         titulo.textContent = 'Gestión de Vehículos';
-        const lista = datos.vehiculos.filter(v => pasaEstado(v) && `${v.patente} ${v.marca} ${v.modelo}`.toLowerCase().includes(textoBuscado));
+        const incluirBajas = document.getElementById('mostrar-bajas-vehiculos')?.checked || false;
+        const lista = datos.vehiculos.filter(v =>
+            (incluirBajas || esVehiculoActivo(v)) &&
+            pasaEstado(v) &&
+            `${v.patente} ${v.marca} ${v.modelo}`.toLowerCase().includes(textoBuscado)
+        );
+        const totalActivos = datos.vehiculos.filter(esVehiculoActivo).length;
+
         vista.innerHTML = `
             <table class="tabla-erp">
                 <thead><tr><th>Patente</th><th>Marca</th><th>Modelo</th><th>Año</th><th>KM Actuales</th><th>Estado</th>${editables ? '<th>Acciones</th>' : ''}</tr></thead>
-                <tbody>${lista.map(v => `
-                    <tr>
-                        <td><strong>${v.patente}</strong></td><td>${v.marca}</td><td>${v.modelo}</td><td>${v.año}</td>
+                <tbody>${lista.map(v => {
+                    const activo = esVehiculoActivo(v);
+                    return `
+                    <tr class="${activo ? '' : 'fila-baja'}">
+                        <td><strong>${v.patente}</strong> ${activo ? '' : '<span class="etiqueta-estado etiqueta-alerta">BAJA</span>'}</td>
+                        <td>${v.marca}</td><td>${v.modelo}</td><td>${v.año}</td>
                         <td>${Number(v.km_actuales).toLocaleString()} km</td>
                         <td><span class="etiqueta-estado">${v.Estado}</span></td>
                         ${editables ? `<td>
                             <button class="boton-chico boton-editar" onclick="abrirModalEditar('${v.patente}')">Editar</button>
-                            <button class="boton-chico boton-eliminar" onclick="eliminarRegistro('${v.patente}')">Baja</button>
+                            ${activo ? `<button class="boton-chico boton-eliminar" onclick="eliminarRegistro('${v.patente}')">Baja</button>` : ''}
                         </td>` : ''}
-                    </tr>`).join('')}</tbody>
+                    </tr>`;
+                }).join('')}</tbody>
             </table>`;
-        resumen.innerHTML = `<div class="caja-resumen"><span>Total Unidades:</span><strong>${datos.vehiculos.length}</strong></div>`;
+        resumen.innerHTML = `<div class="caja-resumen"><span>Unidades Activas:</span><strong>${totalActivos}</strong> (Total histórico: ${datos.vehiculos.length})</div>`;
     } else if (moduloActual === 'choferes') {
         titulo.textContent = 'Gestión de Choferes';
         const lista = datos.chofer.filter(c => `${c.nro_legajo} ${c.licencia}`.toLowerCase().includes(textoBuscado));
@@ -439,7 +462,7 @@ function renderizarModulo() {
             <table class="tabla-erp">
                 <thead><tr><th>ID</th><th>Razón Social</th><th>Teléfono</th><th>Email</th>${editables ? '<th>Acciones</th>' : ''}</tr></thead>
                 <tbody>${lista.map(p => `<tr>
-                    <td><strong>#${p.id_proveedor}</strong></td><td>${p.razon_social}</td><td>${p.telefono}</td><td>${p.email}</td>
+                    <td><strong>#${p.id_proveedor}</strong></td><td>${p.razon_social}</td><td>${p.telefono || ''}</td><td>${p.email || ''}</td>
                     ${editables ? `<td>
                         <button class="boton-chico boton-editar" onclick="abrirModalEditar(${p.id_proveedor})">Editar</button>
                         <button class="boton-chico boton-eliminar" onclick="eliminarRegistro(${p.id_proveedor})">Baja</button>
@@ -528,7 +551,7 @@ function renderizarModulo() {
         resumen.innerHTML = `<div class="caja-resumen"><span>Total Solicitudes:</span><strong>${datos.solicita.length}</strong></div>`;
     } else if (moduloActual === 'reportes') {
         titulo.textContent = 'Costo Por Kilómetro (CPK)';
-        const opciones = datos.vehiculos.map(v => `<option value="${v.patente}">${v.patente} - ${v.marca} ${v.modelo}</option>`).join('');
+        const opciones = datos.vehiculos.filter(esVehiculoActivo).map(v => `<option value="${v.patente}">${v.patente} - ${v.marca} ${v.modelo}</option>`).join('');
         vista.innerHTML = `
             <div class="contenedor-reporte-cpk">
                 <div class="barra-filtros">
@@ -539,8 +562,8 @@ function renderizarModulo() {
             </div>`;
     } else if (moduloActual === 'sql-info') {
         titulo.textContent = 'Base de Datos';
-        etiqueta.textContent = 'vektor360.2';
-        vista.innerHTML = `<div class="contenedor-reporte-cpk"><h3>Base de datos: vektor360.2</h3><p>Conexión mediante scripts PHP en api/vehiculos.php y api/reporte_incidentes.php.</p></div>`;
+        etiqueta.textContent = 'vektor360_3';
+        vista.innerHTML = `<div class="contenedor-reporte-cpk"><h3>Base de datos: vektor360_3</h3><p>Todas las tablas sincronizadas con MySQL mediante PHP.</p></div>`;
     }
 }
 
@@ -557,7 +580,9 @@ function calcularCPK() {
         <p class="cpk-destacado"><strong>Costo Por Kilómetro: $${cpk.toFixed(4)} / km</strong></p>`;
 }
 
-// ==================== MODAL ABM ====================
+/* --------------------------------------------------------------------------
+   SECCIÓN 8: FORMULARIO MODAL Y OPERACIONES ABM CONTRA MYSQL
+   -------------------------------------------------------------------------- */
 function abrirModalNuevo() {
     if (!puedeEditarModulo(moduloActual)) return alert('Tu rango no tiene permiso para crear en este módulo.');
     if (['dashboard', 'reportes', 'sql-info'].includes(moduloActual)) cambiarModulo('vehiculos');
@@ -588,67 +613,68 @@ function abrirFormulario(item) {
     if (moduloActual === 'vehiculos') {
         tituloModal.textContent = item ? `Editar Vehículo ${item.patente}` : 'Nuevo Vehículo';
         campos.innerHTML = `
-            <div class="grupo-campo"><label>Patente:</label><input type="text" id="m-pat" value="${item?.patente || ''}" ${item ? 'disabled' : ''} required></div>
-            <div class="grupo-campo"><label>Marca:</label><input type="text" id="m-marca" value="${item?.marca || ''}" required></div>
-            <div class="grupo-campo"><label>Modelo:</label><input type="text" id="m-modelo" value="${item?.modelo || ''}" required></div>
-            <div class="grupo-campo"><label>Año:</label><input type="number" id="m-anio" value="${item?.año || 2024}" required></div>
-            <div class="grupo-campo"><label>KM Actuales:</label><input type="number" id="m-km" value="${item?.km_actuales || 0}" required></div>
-            <div class="grupo-campo"><label>Estado:</label>
-                <select id="m-est">${['Disponible', 'En Ruta', 'En Taller', 'Fuera de Servicio'].map(e => `<option ${item?.Estado === e ? 'selected' : ''}>${e}</option>`).join('')}</select>
+            <div class="grupo-campo"><label>Patente: ${REQ}</label><input type="text" id="m-pat" value="${item?.patente || ''}" ${item ? 'disabled' : ''} required></div>
+            <div class="grupo-campo"><label>Marca: ${REQ}</label><input type="text" id="m-marca" value="${item?.marca || ''}" required></div>
+            <div class="grupo-campo"><label>Modelo: ${REQ}</label><input type="text" id="m-modelo" value="${item?.modelo || ''}" required></div>
+            <div class="grupo-campo"><label>Año: ${REQ}</label><input type="number" id="m-anio" min="1980" max="2030" value="${item?.año || 2024}" required></div>
+            <div class="grupo-campo"><label>KM Actuales: ${REQ}</label><input type="number" id="m-km" min="0" value="${item?.km_actuales ?? 0}" required></div>
+            <div class="grupo-campo"><label>Estado: ${REQ}</label>
+                <select id="m-est" required>${['Disponible', 'En Ruta', 'En Taller', 'Fuera de Servicio'].map(e => `<option ${item?.Estado === e ? 'selected' : ''}>${e}</option>`).join('')}</select>
             </div>`;
     } else if (moduloActual === 'choferes') {
         tituloModal.textContent = item ? `Editar Chofer #${item.nro_legajo}` : 'Nuevo Chofer';
         campos.innerHTML = `
-            <div class="grupo-campo"><label>Nro. Legajo:</label><input type="number" id="m-leg" value="${item?.nro_legajo || 103}" ${item ? 'disabled' : ''} required></div>
-            <div class="grupo-campo"><label>Licencia:</label><input type="text" id="m-lic" value="${item?.licencia || ''}" required></div>
-            <div class="grupo-campo"><label>Usuario:</label>
+            <div class="grupo-campo"><label>Nro. Legajo: ${REQ}</label><input type="number" id="m-leg" min="1" value="${item?.nro_legajo || 113}" ${item ? 'disabled' : ''} required></div>
+            <div class="grupo-campo"><label>Licencia: ${REQ}</label><input type="text" id="m-lic" value="${item?.licencia || ''}" required></div>
+            <div class="grupo-campo"><label>Usuario (opcional):</label>
                 <select id="m-usr"><option value="">-- Ninguno --</option>${datos.usuario.map(u => `<option value="${u.id_usuarios}" ${item?.id_usuarios == u.id_usuarios ? 'selected' : ''}>${u.nombre}</option>`).join('')}</select>
             </div>`;
     } else if (moduloActual === 'usuarios') {
         tituloModal.textContent = item ? `Editar Usuario #${item.id_usuarios}` : 'Nuevo Usuario';
         campos.innerHTML = `
-            <div class="grupo-campo"><label>DNI:</label><input type="text" id="m-dni" value="${item?.DNI || ''}" required></div>
-            <div class="grupo-campo"><label>Nombre:</label><input type="text" id="m-nom" value="${item?.nombre || ''}" required></div>
-            <div class="grupo-campo"><label>Cargo:</label>
-                <select id="m-cargo">${['Administrador', 'Encargado de Taller', 'Chofer', 'Gerente de Logística'].map(c => `<option ${item?.cargo === c ? 'selected' : ''}>${c}</option>`).join('')}</select>
+            <div class="grupo-campo"><label>DNI: ${REQ}</label><input type="text" id="m-dni" value="${item?.DNI || ''}" required></div>
+            <div class="grupo-campo"><label>Nombre: ${REQ}</label><input type="text" id="m-nom" value="${item?.nombre || ''}" required></div>
+            <div class="grupo-campo"><label>Cargo: ${REQ}</label>
+                <select id="m-cargo" required>${['Administrador', 'Encargado de Taller', 'Chofer', 'Jefa de Logística', 'Gerente de Logística'].map(c => `<option ${item?.cargo === c ? 'selected' : ''}>${c}</option>`).join('')}</select>
             </div>
-            <div class="grupo-campo"><label>Email:</label><input type="email" id="m-email" value="${item?.email || ''}" required></div>
-            <div class="grupo-campo"><label>Contraseña:</label><input type="text" id="m-pass" value="${item?.contraseña || 'P4$$W0RD'}" required></div>`;
+            <div class="grupo-campo"><label>Email: ${REQ}</label><input type="email" id="m-email" value="${item?.email || ''}" required></div>
+            <div class="grupo-campo"><label>Contraseña: ${item ? '' : REQ}</label><input type="password" id="m-pass" placeholder="${item ? 'Dejar vacío para mantener la actual' : 'Ingrese contraseña'}" ${item ? '' : 'required'}></div>`;
     } else if (moduloActual === 'proveedores') {
         tituloModal.textContent = item ? 'Editar Proveedor' : 'Nuevo Proveedor';
         campos.innerHTML = `
-            <div class="grupo-campo"><label>Razón Social:</label><input type="text" id="m-razon" value="${item?.razon_social || ''}" required></div>
-            <div class="grupo-campo"><label>Teléfono:</label><input type="text" id="m-tel" value="${item?.telefono || ''}" required></div>
-            <div class="grupo-campo"><label>Email:</label><input type="email" id="m-email" value="${item?.email || ''}" required></div>`;
+            <div class="grupo-campo"><label>Razón Social: ${REQ}</label><input type="text" id="m-razon" value="${item?.razon_social || ''}" required></div>
+            <div class="grupo-campo"><label>Teléfono: ${REQ}</label><input type="text" id="m-tel" value="${item?.telefono || ''}" required></div>
+            <div class="grupo-campo"><label>Email: ${REQ}</label><input type="email" id="m-email" value="${item?.email || ''}" required></div>`;
     } else if (moduloActual === 'repuestos') {
         tituloModal.textContent = item ? `Ajustar Repuesto ${item.cod_repuesto}` : 'Nuevo Repuesto';
         campos.innerHTML = `
-            <div class="grupo-campo"><label>Código Repuesto:</label><input type="text" id="m-cod" value="${item?.cod_repuesto || 'REP-004'}" ${item ? 'disabled' : ''} required></div>
-            <div class="grupo-campo"><label>Stock Físico:</label><input type="number" id="m-stock" value="${item?.Stock ?? 10}" required></div>
-            <div class="grupo-campo"><label>Stock Mínimo:</label><input type="number" id="m-min" value="${item?.Stock_minimo ?? 5}" required></div>
-            <div class="grupo-campo"><label>Costo Unitario ($):</label><input type="number" step="0.01" id="m-costo" value="${item?.Costo_unitario ?? 8500}" required></div>`;
+            <div class="grupo-campo"><label>Código Repuesto: ${REQ}</label><input type="text" id="m-cod" value="${item?.cod_repuesto || 'REP-021'}" ${item ? 'disabled' : ''} required></div>
+            <div class="grupo-campo"><label>Stock Físico: ${REQ}</label><input type="number" id="m-stock" min="0" value="${item?.Stock ?? 10}" required></div>
+            <div class="grupo-campo"><label>Stock Mínimo: ${REQ}</label><input type="number" id="m-min" min="0" value="${item?.Stock_minimo ?? 5}" required></div>
+            <div class="grupo-campo"><label>Costo Unitario ($): ${REQ}</label><input type="number" step="0.01" min="0" id="m-costo" value="${item?.Costo_unitario ?? 8500}" required></div>`;
     } else if (moduloActual === 'incidentes') {
         tituloModal.textContent = item ? `Actualizar Incidente #${item.id_incidentes}` : 'Registrar Incidente';
+        const vehiculosDisponibles = datos.vehiculos.filter(v => esVehiculoActivo(v) || item?.patente_id === v.patente);
         campos.innerHTML = `
-            <div class="grupo-campo"><label>Patente Vehículo:</label><select id="m-pat">${datos.vehiculos.map(v => `<option value="${v.patente}" ${item?.patente_id === v.patente ? 'selected' : ''}>${v.patente} (${v.Estado})</option>`).join('')}</select></div>
-            <div class="grupo-campo"><label>Legajo Chofer:</label><select id="m-leg">${datos.chofer.map(c => `<option value="${c.nro_legajo}" ${item?.nro_legajo_id == c.nro_legajo ? 'selected' : ''}>Legajo #${c.nro_legajo}</option>`).join('')}</select></div>
-            <div class="grupo-campo"><label>Lugar:</label><input type="text" id="m-lugar" value="${item?.lugar || ''}" required></div>
-            <div class="grupo-campo"><label>Detalles:</label><textarea id="m-det" rows="3" required>${item?.detalles || ''}</textarea></div>
-            <div class="grupo-campo"><label>Estado:</label>
-                <select id="m-est">${['Pendiente', 'En Reparación', 'Solucionado'].map(e => `<option ${item?.Estado === e ? 'selected' : ''}>${e}</option>`).join('')}</select>
+            <div class="grupo-campo"><label>Patente Vehículo: ${REQ}</label><select id="m-pat" required>${vehiculosDisponibles.map(v => `<option value="${v.patente}" ${item?.patente_id === v.patente ? 'selected' : ''}>${v.patente} (${v.Estado})</option>`).join('')}</select></div>
+            <div class="grupo-campo"><label>Legajo Chofer: ${REQ}</label><select id="m-leg" required>${datos.chofer.map(c => `<option value="${c.nro_legajo}" ${item?.nro_legajo_id == c.nro_legajo ? 'selected' : ''}>Legajo #${c.nro_legajo}</option>`).join('')}</select></div>
+            <div class="grupo-campo"><label>Lugar: ${REQ}</label><input type="text" id="m-lugar" value="${item?.lugar || ''}" required></div>
+            <div class="grupo-campo"><label>Detalles: ${REQ}</label><textarea id="m-det" rows="3" required>${item?.detalles || ''}</textarea></div>
+            <div class="grupo-campo"><label>Estado: ${REQ}</label>
+                <select id="m-est" required>${['Pendiente', 'En Reparación', 'Solucionado'].map(e => `<option ${item?.Estado === e ? 'selected' : ''}>${e}</option>`).join('')}</select>
             </div>`;
     } else if (moduloActual === 'trabajan') {
         tituloModal.textContent = 'Nueva Orden de Taller';
         campos.innerHTML = `
-            <div class="grupo-campo"><label>Incidente:</label><select id="m-inc">${datos.incidentes.map(i => `<option value="${i.id_incidentes}">#${i.id_incidentes} - ${i.patente_id}</option>`).join('')}</select></div>
-            <div class="grupo-campo"><label>Repuesto:</label><select id="m-rep">${datos.repuestos.map(r => `<option value="${r.cod_repuesto}">${r.cod_repuesto} (Stock: ${r.Stock})</option>`).join('')}</select></div>
-            <div class="grupo-campo"><label>Cantidad:</label><input type="number" id="m-cant" value="1" min="1" required></div>`;
+            <div class="grupo-campo"><label>Incidente: ${REQ}</label><select id="m-inc" required>${datos.incidentes.map(i => `<option value="${i.id_incidentes}">#${i.id_incidentes} - ${i.patente_id}</option>`).join('')}</select></div>
+            <div class="grupo-campo"><label>Repuesto: ${REQ}</label><select id="m-rep" required>${datos.repuestos.map(r => `<option value="${r.cod_repuesto}">${r.cod_repuesto} (Stock: ${r.Stock})</option>`).join('')}</select></div>
+            <div class="grupo-campo"><label>Cantidad: ${REQ}</label><input type="number" id="m-cant" value="1" min="1" required></div>`;
     } else if (moduloActual === 'solicita') {
         tituloModal.textContent = 'Nueva Solicitud de Compra';
         campos.innerHTML = `
-            <div class="grupo-campo"><label>Proveedor:</label><select id="m-prov">${datos.proveedor.map(p => `<option value="${p.id_proveedor}">${p.razon_social}</option>`).join('')}</select></div>
-            <div class="grupo-campo"><label>Repuesto:</label><select id="m-rep">${datos.repuestos.map(r => `<option value="${r.cod_repuesto}">${r.cod_repuesto} (Stock: ${r.Stock})</option>`).join('')}</select></div>
-            <div class="grupo-campo"><label>Cantidad:</label><input type="number" id="m-cant" value="10" min="1" required></div>`;
+            <div class="grupo-campo"><label>Proveedor: ${REQ}</label><select id="m-prov" required>${datos.proveedor.map(p => `<option value="${p.id_proveedor}">${p.razon_social}</option>`).join('')}</select></div>
+            <div class="grupo-campo"><label>Repuesto: ${REQ}</label><select id="m-rep" required>${datos.repuestos.map(r => `<option value="${r.cod_repuesto}">${r.cod_repuesto} (Stock: ${r.Stock})</option>`).join('')}</select></div>
+            <div class="grupo-campo"><label>Cantidad: ${REQ}</label><input type="number" id="m-cant" value="10" min="1" required></div>`;
     }
 }
 
@@ -656,107 +682,178 @@ function cerrarModal() {
     document.getElementById('modal-abm').classList.add('oculto');
 }
 
-function guardarEnArreglo(lista, obj, coincide) {
-    const idx = lista.findIndex(coincide);
-    if (idx >= 0) lista[idx] = obj;
-    else lista.push(obj);
-}
-
 async function guardarRegistro(evento) {
     evento.preventDefault();
     if (!puedeEditarModulo(moduloActual)) return;
 
     const cajaError = document.getElementById('error-modal');
+    const btnGuardar = document.getElementById('boton-guardar-modal');
     cajaError.classList.add('oculto');
-    guardarCopiaEstado();
 
-    const fechaHora = new Date().toISOString().slice(0, 19).replace('T', ' ');
+    // Fecha y hora local del sistema (no UTC)
+    const fechaHora = obtenerFechaHoraLocalSQL();
     const idUsuario = usuarioActivo?.id_usuarios || 1;
+    let endpoint = '';
+    let payload = {};
 
     if (moduloActual === 'vehiculos') {
-        const patente = (editandoId || document.getElementById('m-pat').value).toUpperCase().trim();
-        const obj = {
-            patente,
+        endpoint = 'api/vehiculos.php';
+        payload = {
+            patente: (editandoId || document.getElementById('m-pat').value).toUpperCase().trim(),
             marca: document.getElementById('m-marca').value.trim(),
             modelo: document.getElementById('m-modelo').value.trim(),
             año: Number(document.getElementById('m-anio').value),
             km_actuales: Number(document.getElementById('m-km').value),
             Estado: document.getElementById('m-est').value
         };
-        try { await fetch('api/vehiculos.php', { method: editandoId ? 'PUT' : 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(obj) }); } catch (e) {}
-        guardarEnArreglo(datos.vehiculos, obj, v => v.patente === patente);
     } else if (moduloActual === 'choferes') {
-        const leg = editandoId || Number(document.getElementById('m-leg').value);
-        guardarEnArreglo(datos.chofer, { nro_legajo: leg, licencia: document.getElementById('m-lic').value.trim(), id_usuarios: document.getElementById('m-usr').value || null }, c => c.nro_legajo == leg);
+        endpoint = 'api/choferes.php';
+        payload = {
+            nro_legajo: editandoId || Number(document.getElementById('m-leg').value),
+            licencia: document.getElementById('m-lic').value.trim(),
+            id_usuarios: document.getElementById('m-usr').value || null
+        };
     } else if (moduloActual === 'usuarios') {
-        const id = editandoId || (datos.usuario.length + 1);
-        guardarEnArreglo(datos.usuario, { id_usuarios: id, DNI: document.getElementById('m-dni').value.trim(), nombre: document.getElementById('m-nom').value.trim(), cargo: document.getElementById('m-cargo').value, email: document.getElementById('m-email').value.trim(), contraseña: document.getElementById('m-pass').value }, u => u.id_usuarios == id);
+        endpoint = 'api/usuarios.php';
+        payload = {
+            id_usuarios: editandoId,
+            DNI: document.getElementById('m-dni').value.trim(),
+            nombre: document.getElementById('m-nom').value.trim(),
+            cargo: document.getElementById('m-cargo').value,
+            email: document.getElementById('m-email').value.trim(),
+            contraseña: document.getElementById('m-pass').value
+        };
     } else if (moduloActual === 'proveedores') {
-        const id = editandoId || (datos.proveedor.length + 1);
-        guardarEnArreglo(datos.proveedor, { id_proveedor: id, razon_social: document.getElementById('m-razon').value.trim(), telefono: document.getElementById('m-tel').value.trim(), email: document.getElementById('m-email').value.trim() }, p => p.id_proveedor == id);
+        endpoint = 'api/proveedores.php';
+        payload = {
+            id_proveedor: editandoId,
+            razon_social: document.getElementById('m-razon').value.trim(),
+            telefono: document.getElementById('m-tel').value.trim(),
+            email: document.getElementById('m-email').value.trim()
+        };
     } else if (moduloActual === 'repuestos') {
-        const cod = (editandoId || document.getElementById('m-cod').value).toUpperCase().trim();
-        guardarEnArreglo(datos.repuestos, { cod_repuesto: cod, Stock: Number(document.getElementById('m-stock').value), Stock_minimo: Number(document.getElementById('m-min').value), Costo_unitario: Number(document.getElementById('m-costo').value), id_usuarios: idUsuario }, r => r.cod_repuesto === cod);
+        endpoint = 'api/repuestos.php';
+        payload = {
+            cod_repuesto: (editandoId || document.getElementById('m-cod').value).toUpperCase().trim(),
+            Stock: Number(document.getElementById('m-stock').value),
+            Stock_minimo: Number(document.getElementById('m-min').value),
+            Costo_unitario: Number(document.getElementById('m-costo').value),
+            id_usuarios: idUsuario
+        };
     } else if (moduloActual === 'incidentes') {
-        const id = editandoId || (datos.incidentes.length + 1);
-        const obj = { id_incidentes: id, fecha: fechaHora, patente_id: document.getElementById('m-pat').value, nro_legajo_id: Number(document.getElementById('m-leg').value), lugar: document.getElementById('m-lugar').value.trim(), detalles: document.getElementById('m-det').value.trim(), Estado: document.getElementById('m-est').value };
-        try { await fetch('api/reporte_incidentes.php', { method: editandoId ? 'PUT' : 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(obj) }); } catch (e) {}
-        guardarEnArreglo(datos.incidentes, obj, i => i.id_incidentes == id);
+        endpoint = 'api/reporte_incidentes.php';
+        const incOriginal = editandoId ? datos.incidentes.find(x => x.id_incidentes == editandoId) : null;
+        payload = {
+            id_incidentes: editandoId,
+            fecha: incOriginal ? incOriginal.fecha : fechaHora,
+            patente_id: document.getElementById('m-pat').value,
+            nro_legajo_id: Number(document.getElementById('m-leg').value),
+            lugar: document.getElementById('m-lugar').value.trim(),
+            detalles: document.getElementById('m-det').value.trim(),
+            Estado: document.getElementById('m-est').value
+        };
     } else if (moduloActual === 'trabajan') {
-        const cod = document.getElementById('m-rep').value;
-        const cant = Number(document.getElementById('m-cant').value);
-        const rep = datos.repuestos.find(r => r.cod_repuesto === cod);
-        if (!rep || cant > Number(rep.Stock)) {
-            historialDeshacer.pop();
-            cajaError.textContent = `Stock insuficiente (Disponible: ${rep ? rep.Stock : 0}).`;
+        endpoint = 'api/trabajan.php';
+        payload = {
+            id_incidentes: Number(document.getElementById('m-inc').value),
+            cod_repuesto: document.getElementById('m-rep').value,
+            id_usuarios: idUsuario,
+            fecha: fechaHora,
+            cantidad: Number(document.getElementById('m-cant').value)
+        };
+    } else if (moduloActual === 'solicita') {
+        endpoint = 'api/solicita.php';
+        payload = {
+            id_proveedor: Number(document.getElementById('m-prov').value),
+            cod_repuesto: document.getElementById('m-rep').value,
+            id_usuarios: idUsuario,
+            fecha: fechaHora,
+            cantidad: Number(document.getElementById('m-cant').value),
+            estado: 'Pendiente'
+        };
+    }
+
+    if (btnGuardar) btnGuardar.disabled = true;
+
+    try {
+        const resp = await fetch(endpoint, {
+            method: editandoId ? 'PUT' : 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'same-origin',
+            body: JSON.stringify(payload)
+        });
+        const json = await resp.json();
+
+        if (!resp.ok || json.status !== 'ok') {
+            cajaError.textContent = json.message || 'El servidor rechazó la operación en MySQL.';
             cajaError.classList.remove('oculto');
             return;
         }
-        rep.Stock = Number(rep.Stock) - cant;
-        datos.trabajan.push({ id_trabajan: datos.trabajan.length + 1, id_incidentes: Number(document.getElementById('m-inc').value), cod_repuesto: cod, id_usuarios: idUsuario, fecha: fechaHora, cantidad: cant });
-    } else if (moduloActual === 'solicita') {
-        datos.solicita.push({ id_solicita: datos.solicita.length + 1, id_proveedor: Number(document.getElementById('m-prov').value), cod_repuesto: document.getElementById('m-rep').value, id_usuarios: idUsuario, fecha: fechaHora, cantidad: Number(document.getElementById('m-cant').value), estado: 'Pendiente' });
-    }
 
-    cerrarModal();
-    renderizarModulo();
+        cerrarModal();
+        await cargarDatosDesdePHP();
+    } catch (e) {
+        cajaError.textContent = 'Error de comunicación con el servidor al guardar.';
+        cajaError.classList.remove('oculto');
+    } finally {
+        if (btnGuardar) btnGuardar.disabled = false;
+    }
 }
 
-function marcarSolicitudRecibida(id) {
+async function marcarSolicitudRecibida(id) {
     if (!puedeEditarModulo('solicita')) return;
-    const sol = datos.solicita.find(s => s.id_solicita == id);
-    if (!sol || sol.estado === 'Recibido') return;
-    guardarCopiaEstado();
-    sol.estado = 'Recibido';
-    const rep = datos.repuestos.find(r => r.cod_repuesto === sol.cod_repuesto);
-    if (rep) rep.Stock = Number(rep.Stock) + Number(sol.cantidad);
-    renderizarModulo();
+    if (!confirm(`¿Confirma la recepción de la solicitud SOL-${id} y el ingreso al stock?`)) return;
+
+    try {
+        const resp = await fetch('api/solicita.php', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'same-origin',
+            body: JSON.stringify({ id_solicita: id, estado: 'Recibido' })
+        });
+        const json = await resp.json();
+
+        if (!resp.ok || json.status !== 'ok') {
+            alert(json.message || 'No se pudo actualizar la solicitud en MySQL.');
+            return;
+        }
+
+        await cargarDatosDesdePHP();
+    } catch (e) {
+        alert('Error de red al confirmar la recepción en el servidor.');
+    }
 }
 
 async function eliminarRegistro(id) {
     if (!puedeEditarModulo(moduloActual)) return alert('Tu rango no tiene permiso para eliminar en este módulo.');
-    if (!confirm(`¿Confirma eliminar el registro ${id}?`)) return;
-    guardarCopiaEstado();
+    const accionTexto = moduloActual === 'vehiculos' ? 'dar de baja' : 'eliminar';
+    if (!confirm(`¿Confirma ${accionTexto} el registro ${id}?`)) return;
 
-    if (moduloActual === 'vehiculos') {
-        try { await fetch(`api/vehiculos.php?patente=${encodeURIComponent(id)}`, { method: 'DELETE' }); } catch (e) {}
-        datos.vehiculos = datos.vehiculos.filter(v => v.patente !== id);
-    } else if (moduloActual === 'choferes') {
-        datos.chofer = datos.chofer.filter(c => c.nro_legajo != id);
-    } else if (moduloActual === 'usuarios') {
-        datos.usuario = datos.usuario.filter(u => u.id_usuarios != id);
-    } else if (moduloActual === 'proveedores') {
-        datos.proveedor = datos.proveedor.filter(p => p.id_proveedor != id);
-    } else if (moduloActual === 'repuestos') {
-        datos.repuestos = datos.repuestos.filter(r => r.cod_repuesto !== id);
-    } else if (moduloActual === 'incidentes') {
-        try { await fetch(`api/reporte_incidentes.php?id_incidentes=${encodeURIComponent(id)}`, { method: 'DELETE' }); } catch (e) {}
-        datos.incidentes = datos.incidentes.filter(i => i.id_incidentes != id);
-    } else if (moduloActual === 'trabajan') {
-        datos.trabajan = datos.trabajan.filter(t => t.id_trabajan != id);
-    } else if (moduloActual === 'solicita') {
-        datos.solicita = datos.solicita.filter(s => s.id_solicita != id);
+    const rutasDelete = {
+        vehiculos: `api/vehiculos.php?patente=${encodeURIComponent(id)}`,
+        choferes: `api/choferes.php?nro_legajo=${encodeURIComponent(id)}`,
+        usuarios: `api/usuarios.php?id_usuarios=${encodeURIComponent(id)}`,
+        proveedores: `api/proveedores.php?id_proveedor=${encodeURIComponent(id)}`,
+        repuestos: `api/repuestos.php?cod_repuesto=${encodeURIComponent(id)}`,
+        incidentes: `api/reporte_incidentes.php?id_incidentes=${encodeURIComponent(id)}`,
+        trabajan: `api/trabajan.php?id_trabajan=${encodeURIComponent(id)}`,
+        solicita: `api/solicita.php?id_solicita=${encodeURIComponent(id)}`
+    };
+
+    const url = rutasDelete[moduloActual];
+    if (!url) return;
+
+    try {
+        const resp = await fetch(url, { method: 'DELETE', credentials: 'same-origin' });
+        const json = await resp.json();
+
+        if (!resp.ok || json.status !== 'ok') {
+            alert(json.message || 'MySQL rechazó la eliminación (posibles registros históricos asociados).');
+            return;
+        }
+
+        await cargarDatosDesdePHP();
+    } catch (e) {
+        alert('Error de red al intentar eliminar el registro en el servidor.');
     }
-
-    renderizarModulo();
 }
